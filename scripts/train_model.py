@@ -85,4 +85,3 @@ crypto_categorical_transformer = Pipeline(
 )
 
 ### Save the model
-
