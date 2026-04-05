@@ -12,6 +12,7 @@ from pycoingecko import CoinGeckoAPI
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
 
 app = FastAPI(title="FinWise API", version="1.0.0")
 
@@ -83,7 +84,19 @@ def _stock_file_map() -> dict[str, Path]:
 
 
 def _fetch_stock_data(symbol: str) -> pd.DataFrame:
-    history = yf.Ticker(symbol).history(period="5y", auto_adjust=False)
+    try:
+        history = yf.Ticker(symbol).history(period="5y", auto_adjust=False)
+    except YFRateLimitError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Upstream market data provider rate-limited requests. Try again shortly.",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch market data for symbol: {symbol}",
+        ) from exc
+
     if history.empty:
         raise HTTPException(status_code=404, detail=f"No market data available for symbol: {symbol}")
 
@@ -119,6 +132,11 @@ def _fetch_crypto_data(coin: str) -> pd.DataFrame:
                 f"CoinGecko could not return data for {coin}. "
                 f"Public API access is limited to the last {COINGECKO_PUBLIC_MAX_DAYS} days."
             ),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Upstream crypto data provider is temporarily unavailable. Try again shortly.",
         ) from exc
 
     prices = payload.get("prices", [])
@@ -174,7 +192,13 @@ def _load_crypto_data() -> pd.DataFrame:
 
 
 def _load_coin_data(coin: str) -> pd.DataFrame:
-    df = _load_crypto_data()
+    try:
+        df = _load_crypto_data()
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        df = pd.DataFrame(columns=["timestamp", "price", "coin"])
+
     coin_key = coin.lower()
     coin_df = df[df["coin"].str.lower() == coin_key].copy()
     if not coin_df.empty:
@@ -306,8 +330,15 @@ def list_stocks() -> dict[str, list[str]]:
 
 @app.get("/api/crypto/coins")
 def list_coins() -> dict[str, list[str]]:
-    df = _load_crypto_data()
-    coins = sorted(set(str(coin) for coin in df["coin"].unique().tolist()) | set(SUPPORTED_COINS))
+    try:
+        df = _load_crypto_data()
+        dataset_coins = set(str(coin) for coin in df["coin"].unique().tolist())
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        dataset_coins = set()
+
+    coins = sorted(dataset_coins | set(SUPPORTED_COINS))
     return {"coins": coins}
 
 
