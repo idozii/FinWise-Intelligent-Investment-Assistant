@@ -1,0 +1,7 @@
+fastapi==0.116.1
+uvicorn==0.34.0
+pandas==2.2.3
+numpy==2.2.4
+pycoingecko==3.2.0
+statsmodels==0.14.4
+yfinance==0.2.54

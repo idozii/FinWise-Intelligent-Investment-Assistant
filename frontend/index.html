@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FinWise | Stock Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  </head>
+  <body>
+    <div class="background-orb orb-a"></div>
+    <div class="background-orb orb-b"></div>
+
+    <main class="container">
+      <header class="hero">
+        <p class="eyebrow">FinWise Intelligence</p>
+        <h1>Trade Smarter With Live Visuals</h1>
+        <p class="subtitle">
+          Analyze price behavior, compare daily movement, and preview one-week forecasts from your processed market datasets.
+        </p>
+        <div class="status-row">
+          <span class="status-pill"><strong>Today:</strong> <span id="todayValue"></span></span>
+          <span class="status-pill"><strong>Data As Of:</strong> <span id="dataAsOfValue">-</span></span>
+          <span class="status-pill"><strong>Forecast Model:</strong> <span id="modelValue">-</span></span>
+        </div>
+      </header>
+
+      <section class="mode-switch card">
+        <div class="switch-group" id="assetSwitch">
+          <button class="chip active" data-asset="stocks">Stocks</button>
+          <button class="chip" data-asset="crypto">Crypto</button>
+        </div>
+        <div class="switch-group" id="chartSwitch">
+          <button class="chip active" data-chart="line">Line</button>
+          <button class="chip" data-chart="candlestick">Candlestick</button>
+        </div>
+      </section>
+
+      <section class="controls card">
+        <div class="control-group">
+          <label for="apiBase">API Base URL</label>
+          <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000" />
+        </div>
+        <div class="control-group">
+          <label id="assetLabel" for="symbolSelect">Stock Symbol</label>
+          <select id="symbolSelect"></select>
+        </div>
+        <div class="control-group">
+          <label for="modelSelect">Forecast Model</label>
+          <select id="modelSelect"></select>
+        </div>
+        <button id="refreshBtn">Refresh</button>
+      </section>
+
+      <section class="metrics">
+        <article class="card metric">
+          <h2>Latest Close</h2>
+          <p id="latestClose" class="metric-value">-</p>
+        </article>
+        <article class="card metric">
+          <h2>Daily Change</h2>
+          <p id="dailyChange" class="metric-value">-</p>
+        </article>
+        <article class="card metric">
+          <h2>Forecast Avg (7d)</h2>
+          <p id="forecastAvg" class="metric-value">-</p>
+        </article>
+      </section>
+
+      <section class="charts">
+        <article class="card chart-card">
+          <h2 id="historyTitle">Historical Close (Last 365 Days)</h2>
+          <canvas id="historyChart" class="chart-visible"></canvas>
+          <div id="candlestickChart" class="plot-hidden"></div>
+        </article>
+        <article class="card chart-card">
+          <h2 id="forecastTitle">Next 7 Trading Days Forecast</h2>
+          <canvas id="forecastChart"></canvas>
+        </article>
+      </section>
+
+      <section class="card table-card">
+        <h2>7-Day Prediction Table</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Predicted Close</th>
+                <th>Lower 95%</th>
+                <th>Upper 95%</th>
+              </tr>
+            </thead>
+            <tbody id="forecastTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

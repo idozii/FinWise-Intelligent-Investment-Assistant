@@ -1,6 +1,11 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split, GridSearchCV, TimeSeriesSplit
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
@@ -18,66 +23,42 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# Clean and load data
-AAPL = pd.read_csv("../data/raw/AAPL_daily.csv")
-GOOGL = pd.read_csv("../data/raw/GOOGL_daily.csv")
-MSFT = pd.read_csv("../data/raw/MSFT_daily.csv")
-crypto = pd.read_csv("../data/raw/crypto_prices.csv")
+plt.style.use("ggplot")
 
-fin_check = [AAPL, GOOGL, MSFT, crypto]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DATA_ROOT = Path(os.getenv("FINWISE_DATA_DIR", REPO_ROOT / "data")).expanduser().resolve()
+PROCESSED_DIR = DATA_ROOT / "processed"
 
-for i in fin_check:
-    z = np.abs(stats.zscore(i.select_dtypes(include=[np.number])))
-    outliers = (z > 3).any(axis=1)
-    outliers_rate = outliers.mean()
-    print(f"Outliers rate: {outliers_rate}")
-    print(f"Info: {i.info()}")
-    print(f"Duplicated rows: {i.duplicated().sum()}")
-    print(f"Missing values row: {i.isnull().any(axis=1).sum()}")
+AAPL = pd.read_csv(PROCESSED_DIR / "AAPL_daily_processed.csv")
+GOOGL = pd.read_csv(PROCESSED_DIR / "GOOGL_daily_processed.csv")
+MSFT = pd.read_csv(PROCESSED_DIR / "MSFT_daily_processed.csv")
+AMZN = pd.read_csv(PROCESSED_DIR / "AMZN_daily_processed.csv")
+TSLA = pd.read_csv(PROCESSED_DIR / "TSLA_daily_processed.csv")
+META = pd.read_csv(PROCESSED_DIR / "META_daily_processed.csv")
 
-"""
-    AAPL: 
-        + Info: Price, Close, High, Low, Open, Volume
-        + 1 row has missing values -> drop na
-        + No duplicated rows
-        + Checking outliers with Z-score -> No outliers detected
-    GOOGL: 
-        + Info: Price, Close, High, Low, Open, Volume
-        + 1 row has missing values -> drop na
-        + No duplicated rows
-        + Checking outliers with Z-score -> No outliers detected
-    MSFT: 
-        + Info: Price, Close, High, Low, Open, Volume
-        + 1 row has missing values -> drop na
-        + No duplicated rows
-        + Checking outliers with Z-score -> No outliers detected
-    crypto: 
-        + Info: timestamp, price, coin
-        + No missing values
-        + No duplicated rows
-        + Checking outliers with Z-score -> No outliers detected
-"""
-
-AAPL = AAPL.dropna()
-AAPL = AAPL.reset_index(drop=True)
-GOOGL = GOOGL.dropna()
-GOOGL = GOOGL.reset_index(drop=True)
-MSFT = MSFT.dropna()
-MSFT = MSFT.reset_index(drop=True)
-
-### Feature Engineering with DateTime and Numerical features
-crypto["timestamp"] = pd.to_datetime(crypto["timestamp"], errors="coerce")
-AAPL["Ticker Date"] = pd.to_datetime(AAPL["Ticker Date"], errors="coerce")
-GOOGL["Ticker Date"] = pd.to_datetime(GOOGL["Ticker Date"], errors="coerce")
-MSFT["Ticker Date"] = pd.to_datetime(MSFT["Ticker Date"], errors="coerce")
-
-### Save processed data
-AAPL.to_csv("../data/processed/AAPL_daily_processed.csv", index=False)
-GOOGL.to_csv("../data/processed/GOOGL_daily_processed.csv", index=False)
-MSFT.to_csv("../data/processed/MSFT_daily_processed.csv", index=False)
-crypto.to_csv("../data/processed/crypto_prices_processed.csv", index=False)
+#crypto = pd.read_csv("..data/processed/crypto_prices_processed.csv")
+#bitcoin_data = crypto[crypto["coin"] == "bitcoin"]
+#ethereum_data = crypto[crypto["coin"] == "ethereum"]
+#tether_data = crypto[crypto["coin"] == "tether"]
+#xrp_data = crypto[crypto["coin"] == "ripple"]
+#usdcoin_data = crypto[crypto["coin"] == "usd-coin"]
 
 ### Split features and target
+fig, ax = plt.subplots(3, 2, figsize=(12, 10))
+ax[0, 0].plot(AAPL["Date"], AAPL["Close"])
+ax[0, 0].set_title("AAPL Close Price Over Time")
+ax[0, 1].plot(GOOGL["Date"], GOOGL["Close"])
+ax[0, 1].set_title("GOOGL Close Price Over Time")
+ax[1, 0].plot(MSFT["Date"], MSFT["Close"])
+ax[1, 0].set_title("MSFT Close Price Over Time")
+ax[1, 1].plot(AMZN["Date"], AMZN["Close"])
+ax[1, 1].set_title("AMZN Close Price Over Time")
+ax[2, 0].plot(TSLA["Date"], TSLA["Close"])
+ax[2, 0].set_title("TSLA Close Price Over Time")
+ax[2, 1].plot(META["Date"], META["Close"])
+ax[2, 1].set_title("META Close Price Over Time")
+plt.tight_layout()
+plt.savefig("../reports/figures/stock_prices_over_time.png")
 
 
 ### Preprocess and training pipeline
@@ -88,11 +69,11 @@ crypto_categorical_features = ["coin"]
 crypto_time = ["timestamp"]
 
 yahoo_numerical_transformer = Pipeline(
-    steps=[("impute", KNNImputer(neighbors=5)), ("scaler", StandardScaler())]
+    steps=[("impute", KNNImputer(n_neighbors=5)), ("scaler", StandardScaler())]
 )
 
 crypto_numerical_transformer = Pipeline(
-    steps=[("impute", KNNImputer(neighbors=5)), ("scaler", StandardScaler())]
+    steps=[("impute", KNNImputer(n_neighbors=5)), ("scaler", StandardScaler())]
 )
 
 crypto_categorical_transformer = Pipeline(
@@ -123,7 +104,6 @@ xgb_model = XGBRegressor(
 )
 
 ### Fine-tuning models' hyperparameters
-
 """
     Prophet: changepoint_prior_scale, changepoint_range, holidays_prior_scale, seasonality_mode, growth
     XGBoost: min_child_weight, gamma, subsample, colsample_bytree, max_depth
@@ -157,5 +137,3 @@ rf_paramsGrid = {
     "min_samples_split": [2, 5, 10],
     "min_samples_leaf": [1, 2, 4],
 }
-
-### Save the model
