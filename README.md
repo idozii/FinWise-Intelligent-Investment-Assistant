@@ -138,7 +138,4 @@ Open:
 
 ## Contributors
 
-- 🖥️ [idozii](https://github.com/idozii) – Data Scientist
-- 🕵️ [Vincent](https://github.com/nguyentr4n14) – Software Dev
-- 🤖 [Dcornel](https://github.com/cornel05) – ML Engineer
-- 📊 [DarealDanh](https://github.com/darealDanh) – Hacker
+- 🖥️ [idozii](https://github.com/idozii)
