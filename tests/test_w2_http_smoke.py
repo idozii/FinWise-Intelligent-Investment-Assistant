@@ -4,7 +4,30 @@ import json
 from fastapi.testclient import TestClient
 
 import backend.app as application
-from tests.test_w2_evidence import package
+def package():
+    rows = []
+    for asset in ("GLD", "IWM", "XLE", "XLV"):
+        for horizon in (1, 7):
+            rows.append({
+                "asset": asset, "horizon": horizon, "nOrigins": 64,
+                "naiveMae": 2., "ridgeMae": 2.1,
+                "ridgeMinusNaiveMae": .1,
+                "bootstrap95Low": -.2, "bootstrap95High": .4,
+                "bootstrapContainsZero": True,
+                "ridgeReady": 64, "ridgeAccepted": 32,
+                "ridgeCoverageReady": .85, "jointlyAccepted": 25,
+                "selectedRidgeMinusNaiveMae": -.01,
+            })
+    return {
+        "schemaVersion": "finwise-historical-research-evidence-v1",
+        "evidenceType": "HISTORICAL_RETROSPECTIVE_EXTERNAL_ASSET_FIRST_RUN",
+        "executionMode": "OFFLINE_AUDITED_EXPORT_NOT_LIVE_PREDICTION",
+        "sourceProvider": "Tiingo EOD raw Close",
+        "originalEvaluationProtocolSha256": "b" * 64,
+        "results": rows,
+    }
+
+
 
 
 def test_evidence_unconfigured_returns_404_and_no_implicit_backtest(monkeypatch, tmp_path):
