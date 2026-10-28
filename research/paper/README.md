@@ -52,3 +52,58 @@ not commit raw vendor market data without reviewing provider rights.
 
 The paper can be used as an honest research portfolio and advisor
 discussion artifact now; publication claims require evidence.
+
+
+## R11.1 — Publication figures (optional verified local paper assets)
+
+After a successful `R11 EVIDENCE VERIFIED` local run, generate seven
+**descriptive** plots, each in raster PNG and vector SVG formats:
+
+```bash
+python -m pip install 'matplotlib>=3.8,<4'
+python -m research.r111_scientific_figures \
+  --m5-dir reports/backtest/m5_tiingo_v2 \
+  --r6-manifest reports/backtest/r6_corporate_actions/r6_audit_manifest.json \
+  --r8-dir reports/backtest/r8_development \
+  --r9-dir reports/backtest/r9_risk_coverage_dev \
+  --dev-predictions reports/backtest/m21_multiasset/asset_predictions.csv \
+  --r11-registry reports/backtest/r11_manuscript_evidence/r11_evidence_registry.json \
+  --output-dir reports/backtest/r111_publication_figures
+python -m pytest -q tests/test_r111_scientific_figures.py
+```
+
+Expected 7 sets of plots (14 image assets):
+
+| Figure(s) | Input scope | Interpretation |
+|---|---|---|
+| `fig01_m5_paired_mae` | M5 original retrospective external first run | Paired Ridge−Naive raw-Close MAE, descriptive 95% moving-block bootstrap, n=64 per asset/horizon; no multiple comparison adjustment; split caveat |
+| `fig02_r8_naive_coverage_width`, `fig02_r8_ridge_coverage_width` | R8 exploratory development | Matched ready-origin empirical coverage versus mean relative interval width; fixed and delayed-feedback ACI-style on the *same* point forecasts |
+| `fig03_r9_{aapl,msft,spy,tsla}_risk_availability` | R9 exploratory development | Ridge H7 selected relative MAE (%) against fraction of **all** origins accepted, across 5 width thresholds; no plotted point for 0 accepted |
+
+The figure generator **regenerates** the hash/audit-checked R11 registry
+from local source inputs and compares it with the prior saved copy,
+re-aggregates R8 from origin-level interval records, recomputes all
+160 R9 policy cells and verifies the saved CSV before drawing.
+
+It does not download prices, refit models, access R10 outcomes or
+alter M5/R6/R8/R9/R11 sources. Outputs are written to a **new**
+directory; if a previous image or manifest would change, rerun into a
+distinct versioned output folder rather than overwriting an earlier
+evidence artifact.
+
+The manifest `r111_figures_manifest.json` includes
+source and image SHA-256 hashes and explicitly states that the R10
+independent evaluation has **not** occurred.
+
+**Figure captions and submission guardrails:**
+- State that M5 bootstrap intervals are descriptive, not adjusted for
+  multiplicity, and do not alone show universal Ridge inferiority.
+- Separate M5 retrospective external-asset results from R8/R9
+  development results. Never combine these samples as if iid.
+- The 90% nominal interval target is **not** a guarantee.
+- A policy with no accepted forecasts has **unavailable** selected
+  error, not zero error.
+- Never use a post-hoc R9 width cutoff selection as evidence of
+  independent improvement, nor crop figures to hide unfavorable assets.
+- Vendor-derived plotted aggregates require a final data licensing
+  review before redistribution or publication.
