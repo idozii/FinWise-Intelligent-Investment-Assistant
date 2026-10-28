@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=w3-20261028" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   </head>
@@ -85,6 +85,37 @@
         </p>
       </section>
 
+      <section class="card model-explanations-card" aria-labelledby="modelExplanationTitle">
+        <div class="research-header">
+          <div>
+            <p class="eyebrow">Model transparency</p>
+            <h2 id="modelExplanationTitle">Ridge Feature Contributions · Development Study</h2>
+            <p class="research-subtitle">Exact linear contributions to predicted log-return (not SHAP, causal effects, or live API explanation).</p>
+          </div>
+          <span class="research-tag">EXPLORATORY · NOT LIVE</span>
+        </div>
+        <p id="explanationStatus" role="status" aria-live="polite">Loading optional M4.1 audited explanation export…</p>
+        <div id="explanationDetails" hidden>
+          <div class="explanation-controls">
+            <label for="explanationAsset">Development asset</label>
+            <select id="explanationAsset">
+              <option value="AAPL">AAPL</option>
+              <option value="MSFT">MSFT</option>
+              <option value="SPY">SPY</option>
+              <option value="TSLA">TSLA</option>
+            </select>
+            <label for="explanationHorizon">Forecast horizon</label>
+            <select id="explanationHorizon">
+              <option value="1">H1</option>
+              <option value="7">H7</option>
+            </select>
+          </div>
+          <p id="explanationReconstruction" class="research-subtitle"></p>
+          <div id="explanationBars" class="explanation-bars" aria-label="Mean absolute standardized Ridge log-return feature contributions"></div>
+        </div>
+        <p class="research-caveat">These values describe 32 sample forecast origins per group. Feature contributions are internal to this particular Ridge model, not evidence of market causality or future forecasting accuracy.</p>
+      </section>
+
       <section class="mode-switch card">
         <div class="switch-group" id="assetSwitch">
           <button class="chip active" data-asset="stocks">Stocks</button>
@@ -157,6 +188,6 @@
       </section>
     </main>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=w3-20261028"></script>
   </body>
 </html>
