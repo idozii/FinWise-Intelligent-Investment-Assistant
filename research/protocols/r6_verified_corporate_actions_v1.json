@@ -1,0 +1,23 @@
+{
+  "registry_id": "finwise-r6-official-splits-v1",
+  "status": "externally_verified_reference_only",
+  "events": [
+    {
+      "asset": "XLE",
+      "event_type": "share_split",
+      "ratio_new_per_old": 2,
+      "announcement_date": "2025-11-20",
+      "effective_date": "2025-12-05",
+      "source_title": "State Street Investment Management Announces Share Splits for Five Select Sector SPDR ETFs",
+      "source_url": "https://investors.statestreet.com/investor-news-events/press-releases/news-details/2025/State-Street-Investment-Management-Announces-Share-Splits-for-Five-Select-Sector-SPDR-ETFs/default.aspx",
+      "source_role": "issuer_press_release",
+      "note": "The fund trades at post-split share price beginning 2025-12-05. Issuer estimated post-split price is illustrative, not historical close."
+    }
+  ],
+  "restrictions": [
+    "Do not edit precommitted M5-v2 raw Close snapshots or original results",
+    "Event registry is an externally verified fact, not proof of Tiingo per-date price continuity",
+    "No exclusion or rescore of original M5-v2 predictions",
+    "Diagnostic split-neutral returns are NOT model evaluation and not causal attribution"
+  ]
+}
