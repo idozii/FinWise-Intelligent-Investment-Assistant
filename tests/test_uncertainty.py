@@ -30,7 +30,7 @@ def test_finite_sample_quantile_is_conservative_rank():
 
 def test_first_forecast_never_calibrates_on_own_label():
     x = toy_predictions(n=10)
-    annotated = intervals(x, min_calibration=2, calibration_window=5)
+    annotated = intervals(x, alpha=0.5, min_calibration=2, calibration_window=5)
     assert not annotated.iloc[0].interval_ready
     assert not annotated.iloc[1].interval_ready
     assert annotated.iloc[2].interval_ready
@@ -38,7 +38,7 @@ def test_first_forecast_never_calibrates_on_own_label():
 
 def test_far_future_label_does_not_mature_early():
     x = toy_predictions(n=15, horizon=7)
-    annotated = intervals(x, min_calibration=2, calibration_window=10)
+    annotated = intervals(x, alpha=0.5, min_calibration=2, calibration_window=10)
     assert annotated.loc[6, "calibration_n"] == 0
     assert annotated.loc[7, "calibration_n"] == 1
     assert annotated.loc[8, "calibration_n"] == 2
@@ -75,7 +75,7 @@ def test_models_and_assets_calibrated_separately():
     b["asset"] = "MSFT"
     b["actual"] += 1000
     result = intervals(pd.concat([a, b], ignore_index=True),
-                       min_calibration=2, calibration_window=5)
+                       alpha=0.5, min_calibration=2, calibration_window=5)
     assert set(result.asset) == {"MSFT", "AAPL"}
     assert result.query("asset == 'AAPL'").radius.dropna().max() < 10
     assert result.query("asset == 'MSFT'").radius.dropna().min() > 900
