@@ -16,6 +16,7 @@ from yfinance.exceptions import YFRateLimitError
 from backend.contracts import capabilities_document, legacy_forecast_metadata
 from backend.research_evidence import load_export
 from backend.model_explanations import load_explanations
+from backend.reliability_policies import load_policy_package
 
 app = FastAPI(title="FinWise API", version="1.0.0")
 
@@ -323,6 +324,25 @@ def _run_forecast(close_series: pd.Series, days: int, model_name: str) -> tuple[
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "dataDir": str(DATA_DIR)}
+
+
+@app.get("/api/research/reliability-policies")
+def historical_reliability_policies() -> dict[str, object]:
+    """Read optional exploratory R9 policy summary, never current live forecasts."""
+    path = Path(os.getenv(
+        "FINWISE_RELIABILITY_POLICIES_PATH",
+        REPO_ROOT / "reports" / "backtest" / "w4_reliability_policies.json"
+    )).expanduser()
+    try:
+        return load_policy_package(path)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404, detail="No audited development risk/availability package configured"
+        )
+    except (ValueError, OSError, UnicodeError) as exc:
+        raise HTTPException(
+            status_code=422, detail="Development reliability policy package failed validation"
+        ) from exc
 
 
 @app.get("/api/research/explanations")

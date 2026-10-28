@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=w3-20261028" />
+    <link rel="stylesheet" href="./styles.css?v=w4-20261028" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   </head>
@@ -116,6 +116,53 @@
         <p class="research-caveat">These values describe 32 sample forecast origins per group. Feature contributions are internal to this particular Ridge model, not evidence of market causality or future forecasting accuracy.</p>
       </section>
 
+      <section class="card policy-explorer-card" aria-labelledby="policyExplorerTitle">
+        <div class="research-header">
+          <div>
+            <p class="eyebrow">Reliability &amp; availability</p>
+            <h2 id="policyExplorerTitle">Selective Forecasting · Development Policy Explorer</h2>
+            <p class="research-subtitle">Explore how interval-width thresholds change abstention and conditional error on historical development data.</p>
+          </div>
+          <span class="research-tag">EXPLORATORY · NOT LIVE</span>
+        </div>
+        <p id="policyStatus" role="status" aria-live="polite">
+          Checking for an audited R9 development policy export…
+        </p>
+        <div id="policyDetails" hidden>
+          <div class="policy-controls">
+            <label for="policyAsset">Asset</label>
+            <select id="policyAsset">
+              <option value="MSFT" selected>MSFT</option>
+              <option value="AAPL">AAPL</option>
+              <option value="SPY">SPY</option>
+              <option value="TSLA">TSLA</option>
+            </select>
+            <label for="policyModel">Model</label>
+            <select id="policyModel"><option value="ridge" selected>Ridge</option><option value="naive">Naive</option></select>
+            <label for="policyHorizon">Horizon</label>
+            <select id="policyHorizon"><option value="7" selected>H7</option><option value="1">H1</option></select>
+            <label for="policyWidth">Max interval width</label>
+            <select id="policyWidth">
+              <option value="0.05">5%</option>
+              <option value="0.1" selected>10%</option>
+              <option value="0.15">15%</option>
+              <option value="0.2">20%</option>
+              <option value="0.3">30%</option>
+            </select>
+          </div>
+          <div id="policyMethodCards" class="policy-method-cards" aria-live="polite"></div>
+          <div class="policy-plot-wrap">
+            <h3>Risk–availability across predeclared width thresholds</h3>
+            <p class="research-subtitle">X = percentage of all origins accepted · Y = average absolute relative error among accepted origins. No point is plotted when none were accepted.</p>
+            <canvas id="policyRiskChart" height="210" aria-label="Risk availability chart comparing fixed rolling and adaptive calibration"></canvas>
+          </div>
+        </div>
+        <p class="research-caveat">
+          This is an exploratory, post-hoc development sensitivity analysis. A 90% nominal interval target does not guarantee coverage after selection.
+          More acceptance may also increase conditional error. No results here calibrate the live ARIMA forecast or authorize trading.
+        </p>
+      </section>
+
       <section class="mode-switch card">
         <div class="switch-group" id="assetSwitch">
           <button class="chip active" data-asset="stocks">Stocks</button>
@@ -188,6 +235,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=w3-20261028"></script>
+    <script src="./app.js?v=w4-20261028"></script>
   </body>
 </html>

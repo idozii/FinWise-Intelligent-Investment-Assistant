@@ -32,6 +32,16 @@ const explanationHorizonEl = document.getElementById("explanationHorizon");
 const explanationReconstructionEl = document.getElementById("explanationReconstruction");
 const explanationBarsEl = document.getElementById("explanationBars");
 let explanationEvidence = null;
+const policyStatusEl = document.getElementById("policyStatus");
+const policyDetailsEl = document.getElementById("policyDetails");
+const policyMethodCardsEl = document.getElementById("policyMethodCards");
+const policyAssetEl = document.getElementById("policyAsset");
+const policyModelEl = document.getElementById("policyModel");
+const policyHorizonEl = document.getElementById("policyHorizon");
+const policyWidthEl = document.getElementById("policyWidth");
+const policyChartCanvasEl = document.getElementById("policyRiskChart");
+let policyEvidence = null;
+let policyChartInstance = null;
 
 let historyChart;
 let forecastChart;
@@ -229,6 +239,133 @@ async function loadModelExplanations() {
 
 explanationAssetEl.addEventListener("change", renderModelExplanations);
 explanationHorizonEl.addEventListener("change", renderModelExplanations);
+
+function renderReliabilityPolicy() {
+  if (!policyEvidence) return;
+  const asset = policyAssetEl.value;
+  const model = policyModelEl.value;
+  const horizon = Number(policyHorizonEl.value);
+  const threshold = Number(policyWidthEl.value);
+  const current = policyEvidence.results.filter((row) =>
+    row.asset === asset && row.model === model && row.horizon === horizon
+    && Math.abs(row.maxRelativeWidth - threshold) < 1e-9
+  );
+  policyMethodCardsEl.replaceChildren();
+  const label = (method) => method === "fixed_rolling" ? "Fixed rolling" : "Delayed-feedback ACI-style";
+  for (const method of ["fixed_rolling", "delayed_feedback_aci_style"]) {
+    const item = current.find((r) => r.method === method);
+    if (!item) continue;
+    const card = document.createElement("article");
+    card.className = "policy-method-card";
+    const heading = document.createElement("h3");
+    heading.textContent = label(method);
+    card.appendChild(heading);
+    const status = document.createElement("p");
+    status.className = "policy-acceptance-status";
+    status.textContent = item.nAccepted === 0
+      ? "NO FORECAST ACCEPTED — selected risk unavailable"
+      : item.nAccepted < 30
+        ? "SMALL SAMPLE — descriptive only"
+        : "DESCRIPTIVE RESULT — no coverage guarantee";
+    card.appendChild(status);
+    const grid = document.createElement("dl");
+    const entries = [
+      ["Accepted / all origins", `${item.nAccepted} / ${item.nOrigins} (${(item.acceptanceAll*100).toFixed(1)}%)`],
+      ["Accepted / calibrated", `${item.nAccepted} / ${item.nReady}`],
+      ["Coverage (calibrated)", item.intervalCoverageReady == null ? "N/A" : `${(item.intervalCoverageReady*100).toFixed(1)}%`],
+      ["Coverage (accepted)", item.intervalCoverageSelected == null ? "N/A" : `${(item.intervalCoverageSelected*100).toFixed(1)}%`],
+      ["Selected relative MAE", item.relativeMaeSelected == null ? "N/A" : `${(item.relativeMaeSelected*100).toFixed(2)}%`],
+    ];
+    for (const [key, value] of entries) {
+      const dt = document.createElement("dt");
+      const dd = document.createElement("dd");
+      dt.textContent = key;
+      dd.textContent = value;
+      grid.append(dt, dd);
+    }
+    card.appendChild(grid);
+    policyMethodCardsEl.appendChild(card);
+  }
+  const all = policyEvidence.results.filter((r) =>
+    r.asset === asset && r.model === model && r.horizon === horizon
+  );
+  if (policyChartInstance) {
+    policyChartInstance.destroy();
+    policyChartInstance = null;
+  }
+  if (typeof Chart === "undefined") {
+    return; // Cards remain useful even when third-party chart CDN is unavailable.
+  }
+  const pairs = [
+    ["fixed_rolling", "Fixed rolling", "#2f6f62"],
+    ["delayed_feedback_aci_style", "Delayed-feedback ACI-style", "#ef8354"]
+  ];
+  const datasets = pairs.map(([method, title, color]) => ({
+    label: title,
+    data: all.filter((row) => row.method === method && row.relativeMaeSelected != null)
+      .sort((a, b) => a.maxRelativeWidth - b.maxRelativeWidth)
+      .map((row) => ({
+        x: row.acceptanceAll * 100,
+        y: row.relativeMaeSelected * 100
+      })),
+    borderColor: color,
+    backgroundColor: color,
+    showLine: true,
+    fill: false,
+    pointRadius: 4,
+    tension: 0.1
+  }));
+  policyChartInstance = new Chart(policyChartCanvasEl.getContext("2d"), {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      parsing: false,
+      plugins: {
+        legend: { position: "top" },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.x.toFixed(1)}% accepted; ${context.parsed.y.toFixed(2)}% selected relative MAE`
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: "All origins accepted (%)" }, min: 0, max: 100 },
+        y: { title: { display: true, text: "Selected relative MAE (%)" }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+async function loadReliabilityPolicies() {
+  policyDetailsEl.hidden = true;
+  policyMethodCardsEl.replaceChildren();
+  policyEvidence = null;
+  if (policyChartInstance) {
+    policyChartInstance.destroy();
+    policyChartInstance = null;
+  }
+  try {
+    const data = await fetchJson("/api/research/reliability-policies");
+    if (data.schemaVersion !== "finwise-dev-reliability-policy-explorer-v1" ||
+        data.executionMode !== "OFFLINE_EXPLORATORY_NOT_LIVE_FORECASTING" ||
+        !Array.isArray(data.results) || data.results.length !== 160) {
+      throw new Error("Unverified selective policy evidence");
+    }
+    policyEvidence = data;
+    policyStatusEl.textContent =
+      "Audited R9 development policy sensitivity loaded locally. This does NOT calibrate live forecasts.";
+    policyDetailsEl.hidden = false;
+    renderReliabilityPolicy();
+  } catch {
+    policyStatusEl.textContent =
+      "No audited development risk/availability package configured. Live forecast uncertainty remains unvalidated.";
+  }
+}
+
+for (const select of [policyAssetEl, policyModelEl, policyHorizonEl, policyWidthEl]) {
+  select.addEventListener("change", renderReliabilityPolicy);
+}
 
 async function loadSymbols() {
   const endpoint = activeAsset === "stocks" ? "/api/stocks" : "/api/crypto/coins";
@@ -522,6 +659,7 @@ modelSelect.addEventListener("change", async () => {
 apiInput.addEventListener("change", async () => {
   await loadResearchEvidence();
   await loadModelExplanations();
+  await loadReliabilityPolicies();
   await loadCapabilities();
   await loadSymbols();
   await refreshData();
@@ -558,6 +696,7 @@ chartSwitch.addEventListener("click", async (event) => {
     await loadCapabilities();
     await loadResearchEvidence();
     await loadModelExplanations();
+    await loadReliabilityPolicies();
     await loadForecastModels();
     await loadSymbols();
     await refreshData();

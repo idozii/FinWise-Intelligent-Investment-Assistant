@@ -107,5 +107,6 @@ def test_frontend_explanation_controls_are_text_safe():
     assert 'id="explanationHorizon"' in html
     assert "td.textContent = value" in js
     assert "name.textContent = feature.name" in js
-    assert 'href="./styles.css?v=w3-20261028"' in html
+    assert 'href="./styles.css?v=' in html
+    assert 'src="./app.js?v=' in html
     assert "not SHAP" in html

@@ -328,3 +328,25 @@ th {
 .explanation-value { text-align:right; font-variant-numeric:tabular-nums; }
 .model-explanations-card [hidden] { display:none !important; }
 @media (max-width:600px) { .explanation-row { grid-template-columns: 100px minmax(60px,1fr) 64px; gap:6px; font-size:.75rem; } }
+
+
+/* W4: risk-versus-availability research scenario cards. Never imply live calibration. */
+.policy-explorer-card { margin:16px 0; }
+.policy-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:18px 0; }
+.policy-controls label { font-size:.78rem; color:var(--muted); font-weight:600; }
+.policy-controls select { border:1px solid var(--line); border-radius:8px; background:white; color:var(--ink); padding:8px 11px; }
+.policy-method-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:12px 0; }
+.policy-method-card { border:1px solid var(--line); background:rgba(255,255,255,.58); border-radius:12px; padding:15px; min-width:0; }
+.policy-method-card h3 { margin:0 0 5px; font-size:1.06rem; }
+.policy-acceptance-status { font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--muted); margin:8px 0 12px; }
+.policy-method-card dl { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(65px,1fr); gap:9px 8px; margin:0; font-size:.85rem; }
+.policy-method-card dt { color:var(--muted); overflow-wrap:anywhere; }
+.policy-method-card dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+.policy-plot-wrap { margin-top:12px; border:1px solid var(--line); border-radius:12px; padding:14px; background:rgba(255,255,255,.55); }
+.policy-plot-wrap h3 { font-size:1rem; margin:0 0 6px; }
+.policy-plot-wrap canvas { display:block; max-height:270px; }
+.policy-explorer-card [hidden] { display:none !important; }
+@media (max-width:680px) {
+  .policy-method-cards { grid-template-columns:1fr; }
+  .policy-controls select { flex:1 1 70px; }
+}
