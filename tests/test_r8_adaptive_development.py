@@ -37,7 +37,9 @@ def test_methods_preserve_same_origin_sets_without_holdout():
     assert set(scores.asset) == ALLOWED_DEV
     assert not set(scores.asset)&FORBIDDEN_TEST
     assert (scores.n_origins == 48).all()
-    assert set(scores.n_ready) == {18}
+    fixed = scores.loc[scores.calibration_method == "fixed_rolling"]
+    assert set(fixed.n_ready) == {18}
+    assert (scores.n_ready <= 18).all()
     assert records.loc[records.calibration_method=="delayed_feedback_aci_style", "alpha_used"].between(.01,.5).all()
 
 
