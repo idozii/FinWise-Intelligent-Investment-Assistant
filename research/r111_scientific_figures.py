@@ -241,6 +241,34 @@ def generate(registry: dict, r8_saved: pd.DataFrame,
     cells = verified_m5_cells(registry)
     r8 = verify_r8_score_rows(r8_intervals, r8_saved, registry)
     curves = verified_r9_curve(r8_intervals)
+    # Full numerical reconciliation: a tampered saved R9 CSV cannot be
+    # rendered, even if its narrower manuscript-summary fields still match.
+    group_keys = [
+        "asset", "model", "horizon_step", "calibration_method",
+        "max_relative_width",
+    ]
+    if len(r9) != 160 or r9.duplicated(group_keys).any():
+        raise ValueError("Incomplete or duplicate saved R9 development grid")
+    joined = r9.merge(curves, on=group_keys, how="outer",
+                      indicator=True, validate="one_to_one",
+                      suffixes=("_saved", "_recomputed"))
+    if len(joined) != 160 or not (joined._merge == "both").all():
+        raise ValueError("R9 saved policy keys differ from verified source")
+    numeric_checks = (
+        "n_origins", "n_ready", "n_accepted", "acceptance_rate_all",
+        "acceptance_rate_ready", "interval_coverage_ready",
+        "interval_coverage_selected", "mae_selected",
+        "relative_mae_selected", "mean_relative_interval_width_selected",
+    )
+    for name in numeric_checks:
+        if not np.allclose(
+            joined[name + "_saved"], joined[name + "_recomputed"],
+            equal_nan=True, rtol=1e-8, atol=1e-9
+        ):
+            raise ValueError(f"Saved R9 {name} differs from verified development rows")
+    if not (joined.selection_warning_saved ==
+            joined.selection_warning_recomputed).all():
+        raise ValueError("R9 selected-sample warnings were changed")
     # Reconcile R9 summary used in the manuscript to the exact recomputed 10% curve.
     selected = curves.loc[(curves.model == "ridge") &
                           (curves.horizon_step == 7) &
