@@ -107,3 +107,43 @@ independent evaluation has **not** occurred.
   independent improvement, nor crop figures to hide unfavorable assets.
 - Vendor-derived plotted aggregates require a final data licensing
   review before redistribution or publication.
+
+
+## R11.2 figure readability revision (separate output directory)
+
+The first R11.1 plots were locally verified. Visual review showed
+overlapping labels on R8 coverage–width panels and R9 risk–availability
+plots, especially at policies with repeated acceptance sets. R11.2
+revises **only presentation**, not any forecast errors, coverage,
+bootstrap confidence intervals, development origins or test eligibility.
+
+Changes:
+- R8 places H1 and H7 in separate axes, identifies assets by a single
+  color legend and fixed/ACI by marker shape. Its coverage y-axis
+  clearly says it is **zoomed** to 75–97%.
+- R9 shows each distinct (acceptance, selected error) state as a discrete
+  scatter point, without misleading interpolating connecting segments.
+- A companion table lists **all five** width thresholds (5/10/15/20/30%)
+  for both models, including thresholds sharing the same accepted
+  origin set and those with **zero accepted forecasts**.
+- Selected risk at n=0 displays `N/A`, never 0;
+  risks based on n<30 are marked with `*`.
+- R9's selected relative MAE axes begin at zero, to avoid visually
+  exaggerating tiny differences between methods.
+
+Use a NEW output directory so the first R11.1 artifacts are
+preserved and the version SHA manifest is separate:
+
+```bash
+git fetch origin
+git switch feat/r112-paper-figure-readability
+python -m research.r111_scientific_figures \
+  --r11-registry reports/backtest/r11_manuscript_evidence/r11_evidence_registry.json \
+  --output-dir reports/backtest/r112_publication_figures
+python -m pytest -q tests/test_r111_scientific_figures.py tests/test_r112_figure_readability.py
+```
+
+The default M5/R6/R8/R9/dev data paths are the same as R11.1.
+Expected: `R11.2 FIGURES VERIFIED`, seven plots in PNG and
+SVG and a SHA-256 manifest. The underlying original M5-v2 scores
+and R10 no-independent-test gate must remain untouched.
