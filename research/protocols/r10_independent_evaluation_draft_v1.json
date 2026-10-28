@@ -1,0 +1,46 @@
+{
+  "protocol": "finwise-r10-prospective-evaluation-registration-draft-v1",
+  "status": "BLOCKED_MISSING_NEW_SCOPE_ESTIMAND_AND_AUTHORIZATION",
+  "nature": "prospective_or_independently_untouched_external_evaluation_pre_registration_template",
+  "research_question": "Does a precommitted calibration and selective-forecasting policy produce a better prespecified reliability-availability trade-off than fixed rolling calibration on new, independently held-out price observations?",
+  "prior_used_evidence": [
+    "M2.1 AAPL/MSFT/SPY/TSLA development",
+    "M3/M3.1 rolling calibration",
+    "M4.1 Ridge attribution development",
+    "M5-v2 GLD/IWM/XLE/XLV retrospective external asset first run",
+    "R6 XLE corporate action audit",
+    "R8 ACI-style development",
+    "R9 width policy sweep development"
+  ],
+  "experiment": {
+    "independent_asset_ids": null,
+    "independent_start_date": null,
+    "independent_end_date": null,
+    "evidence_unused_attestation": null,
+    "time_split_policy": null,
+    "point_in_time_data_vendor": null,
+    "provider_data_rights": null,
+    "source_manifest_sha256": null,
+    "price_target_estimand": null,
+    "splits_and_dividends_asof_policy": null,
+    "model_and_calibration_code_commit": null,
+    "model_candidates_and_hyperparameters": null,
+    "selected_abstention_threshold": null,
+    "precommitted_primary_endpoint": null,
+    "primary_acceptance_and_coverage_tradeoff_rule": null,
+    "statistical_inference_plan": null,
+    "multiple_comparisons_policy": null,
+    "missing_data_and_delisting_policy": null,
+    "human_data_access_and_test_execution_approval": false
+  },
+  "guardrails": {
+    "no_prior_evaluation_assets_or_time_reused_as_new_independent_test": true,
+    "no_test_labels_or_outcomes_accessed_during_preregistration": true,
+    "no_source_data_downloaded_by_this_tool": true,
+    "no_model_refit_or_evaluation_by_this_tool": true,
+    "no_retroactive_adjusted_close_as_point_in_time_signal": true,
+    "no_claim_of_guaranteed_conditional_coverage": true
+  },
+  "evaluation_tooling_status": "NOT_IMPLEMENTED_AND_NOT_AUTHORIZED",
+  "next_step": "Choose and document a genuinely untouched dataset and a point-in-time corporate-action-safe estimand; obtain data rights and approval, freeze protocol and code before any R10 evaluation."
+}
