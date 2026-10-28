@@ -35,30 +35,25 @@ The tool cannot verify that factual condition.
 
 ## Step 1 — download reserved datasets once, WITHOUT running performance tests
 
-This snippet does not compute backtest metrics:
+Use the dedicated, rate-limit-aware downloader instead of the previous
+inline loop. The script never downloads an asset whose CSV already exists,
+never overwrites a saved snapshot, writes validated files atomically, and
+**stops immediately** after the first Yahoo Finance rate-limit error (no
+automatic retries, alternate provider, rotating proxies or bypass).
 
 ```bash
-python - <<'PY'
-from pathlib import Path
-import pandas as pd
-import yfinance as yf
-
-out = Path('data/processed')
-out.mkdir(parents=True, exist_ok=True)
-for ticker in ['GLD', 'IWM', 'XLE', 'XLV']:
-    dest = out / f'{ticker}_daily_processed.csv'
-    if dest.exists():
-        print('Exists (will not overwrite)', dest)
-        continue
-    df = yf.Ticker(ticker).history(period='5y', auto_adjust=False)
-    if df.empty:
-        raise RuntimeError(f'No data for {ticker}')
-    df = df.reset_index()
-    df['Date'] = pd.to_datetime(df['Date'], utc=True)
-    df.to_csv(dest, index=False)
-    print('Saved', ticker, len(df), 'rows')
-PY
+python -m scripts.m5_download
+# Or target only files you know are missing:
+python -m scripts.m5_download --only IWM XLE XLV
 ```
+
+If Yahoo returns `YFRateLimitError` / HTTP 429, stop requests and retry
+later when the provider permits access. The script exits with status 2 on
+a detected rate limit; prior completed files are preserved. You can
+check which snapshots exist with `ls -lh data/processed/*_daily_processed.csv`.
+Continue to use Yahoo Finance with `period='5y'` and `auto_adjust=False`;
+changing vendor or price adjustment convention would require amending
+the **frozen** M5 protocol before first outcome evaluation.
 
 Retain the downloaded files unmodified. Record vendor/version/date metadata
 separately if available. Do not inspect performance, plots or future labels
