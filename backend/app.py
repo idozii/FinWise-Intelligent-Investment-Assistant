@@ -13,15 +13,26 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
+from backend.contracts import capabilities_document, legacy_forecast_metadata
 
 app = FastAPI(title="FinWise API", version="1.0.0")
 
+# Same-origin deployments do not need cross-origin access. Only allow explicit
+# local-development origins (or user-provided FINWISE_CORS_ORIGINS), no wildcard
+# with credentialed requests. Market data API remains read-only.
+_CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "FINWISE_CORS_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500"
+    ).split(",")
+    if origin.strip() and origin.strip() != "*"
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["Accept", "Content-Type"],
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -312,6 +323,12 @@ def health() -> dict[str, str]:
     return {"status": "ok", "dataDir": str(DATA_DIR)}
 
 
+@app.get("/api/capabilities")
+def get_capabilities() -> dict[str, object]:
+    """Static, no network calls; distinguish live heuristic from research evidence."""
+    return capabilities_document(list(FORECAST_MODELS))
+
+
 @app.get("/api/forecast-models")
 def list_forecast_models() -> dict[str, list[dict[str, str]]]:
     return {
@@ -409,6 +426,7 @@ def stock_forecast(
         "model": model_label,
         "modelId": model.lower(),
         "forecast": forecast_rows,
+        "metadata": legacy_forecast_metadata("stocks"),
     }
 
 
@@ -475,6 +493,7 @@ def crypto_forecast(
         "model": model_label,
         "modelId": model.lower(),
         "forecast": forecast_rows,
+        "metadata": legacy_forecast_metadata("crypto"),
     }
 
 
