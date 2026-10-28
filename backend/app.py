@@ -14,6 +14,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
 from backend.contracts import capabilities_document, legacy_forecast_metadata
+from backend.research_evidence import load_export
 
 app = FastAPI(title="FinWise API", version="1.0.0")
 
@@ -321,6 +322,27 @@ def _run_forecast(close_series: pd.Series, days: int, model_name: str) -> tuple[
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "dataDir": str(DATA_DIR)}
+
+
+@app.get("/api/research/evidence")
+def historical_research_evidence() -> dict[str, object]:
+    """Read-only historical summaries, not live model calibration."""
+    path = Path(os.getenv(
+        "FINWISE_RESEARCH_SUMMARY_PATH",
+        REPO_ROOT / "reports" / "backtest" / "w2_research_evidence.json"
+    )).expanduser()
+    try:
+        return load_export(path)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="No audited historical evidence package configured; run offline W2 exporter",
+        )
+    except (ValueError, OSError, UnicodeError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Historical research evidence package is unavailable or failed validation",
+        ) from exc
 
 
 @app.get("/api/capabilities")
