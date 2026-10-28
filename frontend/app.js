@@ -19,6 +19,12 @@ const dataAsOfValueEl = document.getElementById("dataAsOfValue");
 const modelValueEl = document.getElementById("modelValue");
 const capabilityStatusEl = document.getElementById("capabilityStatus");
 const forecastEvidenceEl = document.getElementById("forecastEvidence");
+const researchStatusEl = document.getElementById("researchStatus");
+const researchDetailsEl = document.getElementById("researchDetails");
+const researchRowsEl = document.getElementById("researchEvidenceRows");
+const researchWinsEl = document.getElementById("researchWins");
+const researchCiEl = document.getElementById("researchCi");
+const researchCoverageEl = document.getElementById("researchCoverage");
 
 let historyChart;
 let forecastChart;
@@ -105,6 +111,53 @@ async function loadCapabilities() {
   } catch {
     capabilityStatusEl.textContent =
       "API contract unavailable: live forecast calibration is not verified.";
+  }
+}
+
+async function loadResearchEvidence() {
+  // Evidence is optional and HISTORICAL. Fail closed rather than rendering
+  // speculative numbers or treating live forecasts as validated.
+  researchDetailsEl.hidden = true;
+  researchRowsEl.replaceChildren();
+  try {
+    const data = await fetchJson("/api/research/evidence");
+    if (data.schemaVersion !== "finwise-historical-research-evidence-v1" ||
+        data.executionMode !== "OFFLINE_AUDITED_EXPORT_NOT_LIVE_PREDICTION" ||
+        !Array.isArray(data.results) || data.results.length !== 8) {
+      throw new Error("Unexpected historical research evidence contract");
+    }
+    researchWinsEl.textContent =
+      `${data.results.filter((row) => row.ridgeMinusNaiveMae < 0).length}/8`;
+    researchCiEl.textContent =
+      `${data.results.filter((row) => row.bootstrapContainsZero === true).length}/8`;
+    researchCoverageEl.textContent =
+      `${data.results.filter((row) => row.ridgeCoverageReady >= 0.9).length}/8`;
+    const number = (value) => Number(value).toFixed(3);
+    const cells = (row) => [
+      row.asset,
+      `H${row.horizon}`,
+      number(row.naiveMae),
+      number(row.ridgeMae),
+      number(row.ridgeMinusNaiveMae),
+      `[${number(row.bootstrap95Low)}, ${number(row.bootstrap95High)}]`,
+      `${(100 * row.ridgeCoverageReady).toFixed(1)}%`,
+      `${row.ridgeAccepted}/${row.nOrigins}`,
+    ];
+    for (const row of data.results) {
+      const tr = document.createElement("tr");
+      for (const value of cells(row)) {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.appendChild(td);
+      }
+      researchRowsEl.appendChild(tr);
+    }
+    researchDetailsEl.hidden = false;
+    researchStatusEl.textContent =
+      "Audited historical summary loaded locally. These results do NOT validate the live forecast.";
+  } catch {
+    researchStatusEl.textContent =
+      "No validated local research export available. Live models remain unvalidated; run the offline W2 exporter to view historical results.";
   }
 }
 
@@ -398,6 +451,7 @@ modelSelect.addEventListener("change", async () => {
 });
 
 apiInput.addEventListener("change", async () => {
+  await loadResearchEvidence();
   await loadCapabilities();
   await loadSymbols();
   await refreshData();
@@ -432,6 +486,7 @@ chartSwitch.addEventListener("click", async (event) => {
     todayValueEl.textContent = fmtDate(new Date());
     syncLabels();
     await loadCapabilities();
+    await loadResearchEvidence();
     await loadForecastModels();
     await loadSymbols();
     await refreshData();
