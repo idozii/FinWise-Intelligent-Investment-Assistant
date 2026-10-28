@@ -296,7 +296,15 @@ def _forecast_holt_winters(close_series: pd.Series, days: int) -> tuple[np.ndarr
 
 
 def _forecast_arima(close_series: pd.Series, days: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    train = close_series.dropna().astype(float).tail(min(600, len(close_series)))
+    # statsmodels requires a continuous integer index (or a dated index with
+    # explicit frequency). Our price rows may have a gapped original index
+    # after filtering; reset only the *index*, never the ordered prices.
+    # Calendar-day display labels are built separately by the API.
+    train = (
+        close_series.dropna().astype(float)
+        .tail(min(600, len(close_series)))
+        .reset_index(drop=True)
+    )
     if train.shape[0] < 40:
         return _forecast_linear_fallback(train, days)
 
