@@ -1,0 +1,74 @@
+{
+  "protocol": "finwise-m5-tiingo-external-assets-v2",
+  "status": "FROZEN_PROVIDER_AMENDMENT_NOT_YET_EVALUATED",
+  "evaluation_type": "precommitted_external_asset_replication_with_documented_vendor_amendment",
+  "freeze_date_utc": "2026-10-28",
+  "prior_explored_assets": [
+    "AAPL",
+    "MSFT",
+    "SPY",
+    "TSLA"
+  ],
+  "reserved_external_assets": [
+    "GLD",
+    "IWM",
+    "XLE",
+    "XLV"
+  ],
+  "forecast_origin_start": "2025-01-01",
+  "forecast_origin_end": "2026-10-27",
+  "all_targets_must_be_within_end": true,
+  "dataset": {
+    "vendor": "Tiingo End-of-Day Composite API, authenticated with token in request header",
+    "download_period": "2021-10-27 through 2026-10-27 inclusive, fixed absolute dates",
+    "auto_adjust": false,
+    "price_column": "Close",
+    "date_column": "Date",
+    "daily_index": "exchange_sessions_US",
+    "adjustment_limitations": "Raw Tiingo Close is not guaranteed identical to Yahoo raw Close; no cross-vendor result pooling without analysis; no trading-return claims",
+    "provider_endpoint": "https://api.tiingo.com/tiingo/daily/{ticker}/prices",
+    "source_field": "close (raw, not adjClose)"
+  },
+  "models": [
+    "naive",
+    "ridge"
+  ],
+  "ridge": {
+    "alpha": 10,
+    "standard_scaler": true,
+    "feature_spec": "finwise-ml-walk-forward-v1-fixed-12-feature-list"
+  },
+  "horizons": [
+    1,
+    7
+  ],
+  "min_train": 252,
+  "step": 7,
+  "bootstrap": {
+    "block_length_origins": 5,
+    "iterations": 1000,
+    "seed": 42,
+    "ci_nominal": 0.95,
+    "inference": "descriptive_only"
+  },
+  "intervals": {
+    "alpha": 0.1,
+    "min_calibration": 30,
+    "calibration_window": 60,
+    "max_relative_width": 0.1
+  },
+  "primary_endpoints": [
+    "paired_mae_delta_model_minus_naive_per_asset_horizon",
+    "empirical_interval_coverage_ready",
+    "acceptance_rate_all",
+    "paired_mae_on_jointly_accepted_origins"
+  ],
+  "hypotheses": [
+    "H1: Ridge reduces MAE vs Naive on unseen assets at the fixed horizons",
+    "H2: Prequential intervals reach their nominal 90 percent marginal coverage on the reserved assets",
+    "H3: Width-based abstention varies by predeclared asset and horizon"
+  ],
+  "multiple_testing": "All outcomes reported, no confirmatory p-value claims or selective winners",
+  "external_independence_condition": "Requires written attestation of no prior asset-outcome inspection; v2 supersedes the blocked Yahoo-v1 data collection route only, not its evidence",
+  "notes": "Provider-only amendment to blocked M5 Yahoo data collection. All assets/hypotheses/model hyperparameters/time cutoffs unchanged. Tiingo API token required; keep out of Git, logs and chat. This is external-asset historical replication, NOT prospective temporal validation."
+}
