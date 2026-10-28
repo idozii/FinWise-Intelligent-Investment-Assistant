@@ -91,7 +91,10 @@ def _dates_only(path: Path, spec: dict) -> pd.Series:
     return dates
 
 
-def preflight(spec: dict, paths: list[tuple[str, Path]], output_dir: Path) -> dict:
+def preflight(
+    spec: dict, paths: list[tuple[str, Path]], output_dir: Path,
+    *, protocol_sha256: str = LOCKED_PROTOCOL_SHA256,
+) -> dict:
     entries = []
     for asset, path in paths:
         if not path.is_file():
@@ -112,7 +115,7 @@ def preflight(spec: dict, paths: list[tuple[str, Path]], output_dir: Path) -> di
             "preflight_inspected_close_values": False,
         })
     result = {
-        "protocol_sha256": LOCKED_PROTOCOL_SHA256,
+        "protocol_sha256": protocol_sha256,
         "stage": "PREFLIGHT_ONLY_NO_OUTCOME_REVIEW",
         "external_asset_validation_not_prospective": True,
         "manual_asset_noninspection_attestation_required": True,
@@ -131,12 +134,15 @@ def preflight(spec: dict, paths: list[tuple[str, Path]], output_dir: Path) -> di
     return result
 
 
-def check_preflight(spec: dict, paths: list[tuple[str, Path]], directory: Path) -> dict:
+def check_preflight(
+    spec: dict, paths: list[tuple[str, Path]], directory: Path,
+    *, protocol_sha256: str = LOCKED_PROTOCOL_SHA256,
+) -> dict:
     path = directory / "preflight_manifest.json"
     locked = json.loads(path.read_text(encoding="utf-8"))
     if locked.get("stage") != "PREFLIGHT_ONLY_NO_OUTCOME_REVIEW":
         raise ValueError("Invalid preflight stage")
-    if locked["protocol_sha256"] != LOCKED_PROTOCOL_SHA256:
+    if locked["protocol_sha256"] != protocol_sha256:
         raise ValueError("Preflight is from a different frozen protocol")
     recorded = {entry["asset"]: entry for entry in locked["sources"]}
     if set(recorded) != set(spec["reserved_external_assets"]):
@@ -152,9 +158,12 @@ def check_preflight(spec: dict, paths: list[tuple[str, Path]], directory: Path) 
 
 
 def evaluate(
-    spec: dict, paths: list[tuple[str, Path]], output_dir: Path
+    spec: dict, paths: list[tuple[str, Path]], output_dir: Path,
+    *, protocol_sha256: str = LOCKED_PROTOCOL_SHA256,
 ) -> dict:
-    locked = check_preflight(spec, paths, output_dir)
+    locked = check_preflight(
+        spec, paths, output_dir, protocol_sha256=protocol_sha256
+    )
     for filename in ("holdout_predictions.csv", "holdout_interval_predictions.csv",
                      "holdout_metrics.csv", "holdout_result_manifest.json"):
         if (output_dir / filename).exists():
@@ -230,7 +239,7 @@ def evaluate(
         output_dir / "holdout_matched_accepted.csv", index=False)
     report = {
         "protocol": spec["protocol"],
-        "protocol_sha256": LOCKED_PROTOCOL_SHA256,
+        "protocol_sha256": protocol_sha256,
         "stage": "FIRST_EXTERNAL_ASSET_RETROSPECTIVE_EVALUATION",
         "not_prospective_temporal_holdout": True,
         "preflight_sources_sha256": {
