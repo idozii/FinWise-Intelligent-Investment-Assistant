@@ -71,7 +71,7 @@ def test_audit_rejects_same_output_location(tmp_path):
         audit(tmp_path, tmp_path)
 
 
-def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path):
+def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path, monkeypatch):
     spec = json.loads(json.dumps(load_v2_protocol()))
     spec.update({
         "min_train": 70,
@@ -99,6 +99,12 @@ def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path):
     preflight(spec, pairs, original, protocol_sha256=LOCKED_V2_SHA256)
     evaluate(spec, pairs, original, protocol_sha256=LOCKED_V2_SHA256)
     baseline = {p.name: p.read_bytes() for p in original.iterdir() if p.is_file()}
+    # For this synthetic integration test, use its shorter explicitly
+    # configured preflight/bootstrap spec for arithmetic reconciliation.
+    # Production audit still loads the independently hash-locked v2 spec.
+    monkeypatch.setattr(
+        "research.r6_corporate_action_audit.load_v2_protocol", lambda: spec
+    )
     result = audit(original, tmp_path / "r6")
     assert result["excluded_origins"] == 0
     assert result["refit"] is False
