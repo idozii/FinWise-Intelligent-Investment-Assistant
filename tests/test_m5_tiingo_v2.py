@@ -125,7 +125,7 @@ def test_new_protocol_hash_flows_into_preflight(tmp_path):
     spec = load_v2_protocol()
     tiny = dict(spec)
     tiny["reserved_external_assets"] = ["GLD"]
-    tiny["forecast_origin_start"] = "2025-05-01"
+    tiny["forecast_origin_start"] = "2025-04-01"
     tiny["forecast_origin_end"] = "2025-11-20"
     tiny["min_train"] = 80
     path = tmp_path / "GLD_daily_processed.csv"
