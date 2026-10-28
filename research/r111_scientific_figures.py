@@ -20,14 +20,14 @@ import pandas as pd
 from research.r11_paper_evidence import compile_evidence, summarize_r8
 from research.r9_selective_risk import THRESHOLDS, load_dev_input, policy_rows
 
-PROTOCOL = "finwise-r111-audited-scientific-figures-v1"
+PROTOCOL = "finwise-r112-readable-scientific-figures-v1"
 M5_ASSETS = ("GLD", "IWM", "XLE", "XLV")
 DEVELOPMENT_ASSETS = ("AAPL", "MSFT", "SPY", "TSLA")
 METHODS = ("fixed_rolling", "delayed_feedback_aci_style")
 R8_KEYS = ("asset", "model", "horizon_step", "calibration_method")
 
 # Deterministic SVG element identifiers within a given Matplotlib version.
-plt.rcParams["svg.hashsalt"] = "finwise-r111-figures-v1"
+plt.rcParams["svg.hashsalt"] = "finwise-r112-figures-v1"
 
 
 def sha256(file: Path) -> str:
@@ -164,74 +164,165 @@ def plot_m5(cells: list[dict], output: Path) -> dict:
 
 
 def plot_r8(scores: pd.DataFrame, model: str, output: Path) -> dict:
+    """Side-by-side horizons; asset colors and method markers, no crowded labels."""
     group = scores.loc[scores.model == model].copy()
-    fig, ax = plt.subplots(figsize=(9.4, 6.2))
-    for (asset, horizon), pair in group.groupby(["asset", "horizon_step"]):
-        pair = pair.set_index("calibration_method")
-        if set(pair.index) != set(METHODS):
-            raise ValueError("R8 requires fixed and adaptive at identical group")
-        fixed, adaptive = pair.loc[METHODS[0]], pair.loc[METHODS[1]]
-        x = [100*fixed.mean_relative_width_ready,
-             100*adaptive.mean_relative_width_ready]
-        y = [100*fixed.coverage_ready, 100*adaptive.coverage_ready]
-        ax.plot(x, y, linewidth=.9, alpha=.5, color="gray")
-        ax.scatter(x[0], y[0], marker="o")
-        ax.scatter(x[1], y[1], marker="x")
-        ax.annotate(f"{asset} H{horizon}", (x[1], y[1]),
-                    xytext=(4, 2), textcoords="offset points", fontsize=8)
-    ax.axhline(90, color="gray", linestyle="--", linewidth=1)
-    ax.plot([], [], marker="o", linestyle="None", color="gray",
-            label="Fixed rolling")
-    ax.plot([], [], marker="x", linestyle="None", color="gray",
-            label="Delayed-feedback ACI-style")
-    ax.set_xlabel("Mean interval width / last observed Close (%), ready origins")
-    ax.set_ylabel("Observed interval coverage on ready origins (%)")
-    ax.set_ylim(55, 104)
-    ax.set_title(f"R8: coverage–width trade-off · {model.title()} · DEV ONLY")
-    ax.grid(alpha=.18)
-    ax.legend(loc="lower right")
-    fig.text(.10, .015,
-             "Exploratory development data only · paired segments share point forecasts. "
-             "Nominal 90% is not a coverage guarantee.", fontsize=8)
+    if len(group) != 16:
+        raise ValueError("R8 plotting requires all 8 asset/horizon pairs and two methods")
+    fig, axes = plt.subplots(1, 2, figsize=(12.6, 5.6), sharey=True)
+    palette = {asset: plt.get_cmap("tab10")(i)
+               for i, asset in enumerate(DEVELOPMENT_ASSETS)}
+    for horizon, ax in zip((1, 7), axes):
+        for asset in DEVELOPMENT_ASSETS:
+            pair = group.loc[(group.asset == asset) &
+                             (group.horizon_step == horizon)]
+            if len(pair) != 2 or set(pair.calibration_method) != set(METHODS):
+                raise ValueError("R8 requires fixed and ACI-style for each asset/horizon")
+            pair = pair.set_index("calibration_method")
+            fixed, adaptive = pair.loc[METHODS[0]], pair.loc[METHODS[1]]
+            x = [100*fixed.mean_relative_width_ready,
+                 100*adaptive.mean_relative_width_ready]
+            y = [100*fixed.coverage_ready, 100*adaptive.coverage_ready]
+            ax.plot(x, y, linewidth=1.3, alpha=.7, color=palette[asset],
+                    zorder=2)
+            ax.scatter([x[0]], [y[0]], s=64, marker="o",
+                       color=palette[asset], zorder=4)
+            ax.scatter([x[1]], [y[1]], s=75, marker="x", linewidths=2,
+                       color=palette[asset], zorder=5)
+        ax.axhline(90, color="gray", linestyle="--", linewidth=1)
+        ax.set_title(f"H{horizon} · {horizon}-session target", pad=10)
+        ax.set_xlabel("Mean interval width / last Close (%)")
+        ax.set_xlim(left=0)
+        ax.set_ylim(75, 97)
+        ax.grid(alpha=.17)
+    axes[0].set_ylabel("Ready-origin interval coverage (%)")
+
+    from matplotlib.lines import Line2D
+    handles = [
+        Line2D([0], [0], color=palette[asset], linewidth=2, label=asset)
+        for asset in DEVELOPMENT_ASSETS
+    ] + [
+        Line2D([0], [0], marker="o", color="gray", linestyle="None",
+               markersize=7, label="Fixed rolling"),
+        Line2D([0], [0], marker="x", color="gray", linestyle="None",
+               markersize=8, label="Delayed-feedback ACI-style"),
+    ]
+    fig.suptitle(f"R8: observed coverage versus interval width · {model.title()} · DEV ONLY",
+                 fontsize=15, y=.98)
+    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(.5, .91),
+               ncol=6, frameon=False, fontsize=9)
+    fig.subplots_adjust(left=.075, right=.985, top=.77, bottom=.23, wspace=.16)
+    fig.text(.5, .115,
+             "Connecting segments compare the same asset/horizon and identical "
+             "point forecasts under two calibration methods.",
+             fontsize=9, ha="center")
+    fig.text(.5, .075,
+             "Exploratory development only; y-axis zoomed to 75–97%. "
+             "Nominal 90% coverage is not a guarantee.",
+             fontsize=9, ha="center")
     return _save(fig, output, f"fig02_r8_{model}_coverage_width")
 
 
+def r9_policy_table(view: pd.DataFrame) -> list[list[str]]:
+    """Exact five-threshold summary: duplicate points and missing risks visible."""
+    if len(view) != 10 or view.duplicated(
+        ["calibration_method", "max_relative_width"]
+    ).any():
+        raise ValueError("R9 requires exactly two methods by five thresholds")
+    rows = []
+    for threshold in THRESHOLDS:
+        line = [f"{100*threshold:.0f}%"]
+        for method in METHODS:
+            match = view.loc[
+                (view.calibration_method == method) &
+                (np.isclose(view.max_relative_width, threshold))
+            ]
+            if len(match) != 1:
+                raise ValueError("R9 missing a method/threshold policy cell")
+            cell = match.iloc[0]
+            n, all_origins = int(cell.n_accepted), int(cell.n_origins)
+            if n < 0 or all_origins <= 0 or n > all_origins:
+                raise ValueError("Invalid R9 accepted-origins denominator")
+            if n == 0:
+                if not pd.isna(cell.relative_mae_selected):
+                    raise ValueError("Zero accepted policy must have missing selected risk")
+                risk = "N/A"
+            else:
+                if not np.isfinite(float(cell.relative_mae_selected)):
+                    raise ValueError("Non-finite selected risk")
+                risk = f"{100*cell.relative_mae_selected:.2f}%"
+                if n < 30:
+                    risk += " *"
+            line.extend([f"{n}/{all_origins}", risk])
+        rows.append(line)
+    return rows
+
+
 def plot_r9(curve: pd.DataFrame, asset: str, output: Path) -> dict:
+    """Discrete risk/availability points + exact policy table, no spurious lines."""
     view = curve.loc[(curve.asset == asset) &
                      (curve.model == "ridge") &
-                     (curve.horizon_step == 7)]
-    if len(view) != 10:
-        raise ValueError("R9 requires all 5 thresholds for each of 2 methods")
-    fig, ax = plt.subplots(figsize=(8.7, 5.6))
-    for method, label, marker in (
+                     (curve.horizon_step == 7)].copy()
+    table_rows = r9_policy_table(view)
+    fig, (ax, table_ax) = plt.subplots(
+        1, 2, figsize=(12.4, 5.8), gridspec_kw={"width_ratios": [1.25, 1]}
+    )
+    methods = (
         ("fixed_rolling", "Fixed rolling", "o"),
-        ("delayed_feedback_aci_style", "Delayed-feedback ACI-style", "s"),
-    ):
-        sub = view.loc[view.calibration_method == method].sort_values(
-            "max_relative_width"
-        )
+        ("delayed_feedback_aci_style", "Delayed-feedback ACI-style", "x"),
+    )
+    valid_all = []
+    for method, label, marker in methods:
+        sub = view.loc[view.calibration_method == method]
         valid = sub.loc[(sub.n_accepted > 0) &
                         sub.relative_mae_selected.notna()]
+        valid_all.extend((100*valid.relative_mae_selected).tolist())
         if len(valid):
-            xx = 100*valid.acceptance_rate_all.to_numpy(float)
-            yy = 100*valid.relative_mae_selected.to_numpy(float)
-            ax.plot(xx, yy, marker=marker, label=label)
-            for _, row in valid.iterrows():
-                ax.annotate(f"{100*row.max_relative_width:.0f}%",
-                            (100*row.acceptance_rate_all,
-                             100*row.relative_mae_selected),
-                            xytext=(3, 5), textcoords="offset points", fontsize=8)
+            ax.scatter(100*valid.acceptance_rate_all,
+                       100*valid.relative_mae_selected,
+                       s=70, marker=marker, linewidths=2,
+                       label=label, zorder=3)
         else:
-            ax.plot([], [], marker=marker, label=label + " (no accepted origins)")
-    ax.set_xlim(-2, 102)
-    ax.set_xlabel("Forecast availability: accepted / all origins (%)")
+            ax.scatter([], [], marker=marker, label=label + " (no accepted)")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, max(1., max(valid_all, default=0)*1.15))
+    ax.set_xlabel("Accepted / all forecast origins (%)")
     ax.set_ylabel("Selected relative MAE (%)")
-    ax.set_title(f"R9: Ridge H7 · {asset} · development-only")
-    ax.grid(alpha=.2)
-    ax.legend()
-    fig.text(.10, .015,
-             "Different policies select different origins; do not infer causal skill improvements. "
-             "Zero accepted = no risk estimate.", fontsize=8)
+    ax.set_title(f"Ridge H7 · {asset} · development only", pad=14)
+    ax.grid(alpha=.20)
+    ax.legend(fontsize=9, loc="upper right", framealpha=.9)
+
+    # The table lists all policy thresholds, including repeated
+    # acceptance sets and zero-acceptance cells that have no plot point.
+    table_ax.axis("off")
+    table_ax.set_title("Exact discrete policy outcomes", fontsize=12, pad=14)
+    table = table_ax.table(
+        cellText=table_rows,
+        colLabels=("Width", "Fixed n", "Fixed rMAE",
+                   "ACI n", "ACI rMAE"),
+        cellLoc="center", colLoc="center",
+        loc="center", bbox=[0, .13, 1, .77]
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    for (row, _col), cell in table.get_celld().items():
+        cell.set_linewidth(.5)
+        if row == 0:
+            cell.set_text_props(weight="bold")
+            cell.set_facecolor("#eff3f2")
+        elif row % 2 == 0:
+            cell.set_facecolor("#f7f9f9")
+
+    fig.suptitle(f"R9: selective forecast risk–availability · {asset} · DEV ONLY",
+                 fontsize=15, y=.99)
+    fig.subplots_adjust(left=.085, right=.99, top=.82, bottom=.23, wspace=.18)
+    fig.text(.5, .12,
+             "Five discrete thresholds; repeated points are NOT separate observations. "
+             "N/A = no accepted forecasts; * denotes n < 30.",
+             fontsize=9, ha="center")
+    fig.text(.5, .075,
+             "Y-axis starts at zero. Policies select different origins; "
+             "selected MAE does not establish causal improvement.",
+             fontsize=9, ha="center")
     return _save(fig, output, f"fig03_r9_{asset.lower()}_risk_availability")
 
 
@@ -322,7 +413,7 @@ def main(argv=None):
     p.add_argument("--r11-registry", type=Path,
                    default=Path("reports/backtest/r11_manuscript_evidence/r11_evidence_registry.json"))
     p.add_argument("--output-dir", type=Path,
-                   default=Path("reports/backtest/r111_publication_figures"))
+                   default=Path("reports/backtest/r112_publication_figures"))
     args = p.parse_args(argv)
     sources = (args.m5_dir, args.r8_dir, args.r9_dir,
                args.r11_registry.parent)
@@ -358,7 +449,7 @@ def main(argv=None):
     if manifest.exists() and manifest.read_text(encoding="utf-8") != content:
         raise FileExistsError("Previous figure manifest differs; use a versioned output directory")
     manifest.write_text(content, encoding="utf-8")
-    print("R11.1 FIGURES VERIFIED: 7 descriptive plots, 14 PNG/SVG files")
+    print("R11.2 FIGURES VERIFIED: 7 readable plots, 14 PNG/SVG files")
     print("NO new independent R10 test; no live coverage or investment claims")
     print(f"Manifest: {manifest}")
 
