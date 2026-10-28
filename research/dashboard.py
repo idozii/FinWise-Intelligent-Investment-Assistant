@@ -26,7 +26,8 @@ def _read(path: Path, required: set[str]) -> pd.DataFrame:
     return frame
 
 
-def build_payload(robustness_dir: Path, uncertainty_dir: Path) -> dict:
+def build_payload(robustness_dir: Path, uncertainty_dir: Path,
+                  attribution_summary_path: Path | None = None) -> dict:
     p = robustness_dir / "asset_predictions.csv"
     c = robustness_dir / "paired_comparisons.csv"
     r = robustness_dir / "regime_metrics.csv"
@@ -67,6 +68,25 @@ def build_payload(robustness_dir: Path, uncertainty_dir: Path) -> dict:
         return json.loads(data.to_json(orient="records", date_format="iso"))
 
     assets = sorted(set(str(a) for a in predictions.asset.unique()))
+    attribution = None
+    if attribution_summary_path is not None:
+        attribution = _read(
+            attribution_summary_path,
+            {"asset", "feature", "horizon_step", "n_origins",
+             "mean_abs_contribution_log_return",
+             "fraction_positive_contribution", "attribution_type"},
+        )
+        if (set(attribution.asset.astype(str)) - set(assets)):
+            raise ValueError("Attributions include assets absent from benchmark")
+        if (set(attribution.horizon_step.astype(int))
+                - set(predictions.horizon_step.astype(int))):
+            raise ValueError("Attributions include horizons absent from benchmark")
+        if any(t != "exact_linear_model_decomposition_not_SHAP_not_causal"
+               for t in attribution.attribution_type):
+            raise ValueError("Unexpected or unverified attribution type")
+    sources = [p, c, r, i]
+    if attribution_summary_path is not None:
+        sources.append(attribution_summary_path)
     return {
         "protocol": PROTOCOL,
         "stage": "EXPLORATORY_NOT_INDEPENDENT_HOLDOUT",
@@ -76,9 +96,10 @@ def build_payload(robustness_dir: Path, uncertainty_dir: Path) -> dict:
         "paired": clean_records(comparisons),
         "regimes": clean_records(regimes),
         "uncertainty": clean_records(uncertainty),
+        "attributions": clean_records(attribution) if attribution is not None else [],
         "source_sha256": {
             path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in (p, c, r, i)
+            for path in sources
         },
         "disclaimer": "Offline retrospective research; no verified trading edge, "
                       "forecast coverage guarantee, or personalized investment advice.",
@@ -170,6 +191,11 @@ Bootstrap CIs and retrospective interval coverage are not guarantees.</div>
   This is descriptive, not a causal explanation.</p>
   <div id="regimes"></div></section>
 </div>
+<section class="panel"><h2>Ridge — interpretable model contributions</h2>
+<p class="meta">Absolute contribution to predicted log-return, averaged over a
+preselected subset of forecast origins. Exact linear decomposition, <strong>not
+SHAP</strong>, not a causal attribution or measured trading advantage.</p>
+<div id="attributions"></div></section>
 <section class="panel"><h2>What the models observe</h2>
 <p>The research pipeline uses historical log returns (1, 3, 5, 10, 20, 30 observations),
 realized volatility (5, 20, 30), price distance from 5/20-observation averages,
@@ -243,6 +269,15 @@ function redraw(){
     ["Regime",x=>x.regime],["Model",x=>x.model],
     ["MAE",x=>number(x.mae)],["Origins",x=>x.n_origins]
   ],regimes);
+  const attributions=(dataset.attributions || []).filter(
+    x=>x.asset===a&&x.horizon_step===h
+  ).sort((x,y)=>y.mean_abs_contribution_log_return-x.mean_abs_contribution_log_return);
+  table(document.getElementById("attributions"),[
+    ["Feature",x=>x.feature],
+    ["Mean |log-return contribution|",x=>number(x.mean_abs_contribution_log_return,6)],
+    ["Positive fraction",x=>pct(x.fraction_positive_contribution)],
+    ["Sample",x=>x.n_origins]
+  ],attributions);
 }
 dataset.assets.forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;assetSelect.appendChild(o)});
 dataset.horizons.forEach(h=>{const o=document.createElement("option");o.value=h;
@@ -258,8 +293,10 @@ if(dataset.assets.length && dataset.horizons.length)redraw();
 """
 
 
-def generate(robustness_dir: Path, uncertainty_dir: Path, output: Path) -> dict:
-    payload = build_payload(robustness_dir, uncertainty_dir)
+def generate(robustness_dir: Path, uncertainty_dir: Path, output: Path,
+             attribution_summary_path: Path | None = None) -> dict:
+    payload = build_payload(robustness_dir, uncertainty_dir,
+                            attribution_summary_path=attribution_summary_path)
     serialized = json.dumps(payload, allow_nan=False, separators=(",", ":"))
     # JSON string stays intact, but cannot terminate the embedding <script>.
     serialized = (serialized.replace("&", "\\u0026").replace("<", "\\u003c")
@@ -276,8 +313,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--robustness-dir", type=Path, required=True)
     parser.add_argument("--uncertainty-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--attributions", type=Path, default=None,
+                        help="Optional M4.1 ridge_feature_summary.csv")
     args = parser.parse_args(argv)
-    payload = generate(args.robustness_dir, args.uncertainty_dir, args.output)
+    payload = generate(args.robustness_dir, args.uncertainty_dir, args.output,
+                       attribution_summary_path=args.attributions)
     print(f"Built offline dashboard for {len(payload['assets'])} assets: {args.output}")
 
 
