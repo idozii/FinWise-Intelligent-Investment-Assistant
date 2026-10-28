@@ -42,6 +42,49 @@
         </p>
       </section>
 
+      <section class="card research-evidence-card" aria-labelledby="researchEvidenceTitle">
+        <div class="research-header">
+          <div>
+            <p class="eyebrow">Research transparency</p>
+            <h2 id="researchEvidenceTitle">Historical M5-v2 External-Asset Evaluation</h2>
+            <p class="research-subtitle">Audited retrospective results, separate from the live forecast above.</p>
+          </div>
+          <span class="research-tag">HISTORICAL · NOT LIVE</span>
+        </div>
+        <p id="researchStatus" role="status" aria-live="polite">
+          Checking for a locally exported research evidence package…
+        </p>
+        <div id="researchDetails" hidden>
+          <div class="research-summary-grid">
+            <div><span>Ridge MAE wins</span><strong id="researchWins">–</strong></div>
+            <div><span>Descriptive CIs containing zero</span><strong id="researchCi">–</strong></div>
+            <div><span>Ridge coverage ≥ 90%</span><strong id="researchCoverage">–</strong></div>
+          </div>
+          <div class="table-wrap">
+            <table class="research-table">
+              <caption>Ridge vs persistence baseline; all registered asset/horizon cells</caption>
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Horizon</th>
+                  <th>Naive MAE</th>
+                  <th>Ridge MAE</th>
+                  <th>Ridge − Naive</th>
+                  <th>95% descriptive CI</th>
+                  <th>Ridge interval coverage</th>
+                  <th>Ridge accepted</th>
+                </tr>
+              </thead>
+              <tbody id="researchEvidenceRows"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="research-caveat" id="researchCaveat">
+          Not a prospective holdout or trading recommendation. The M5-v2 raw Close target
+          includes a documented XLE 2:1 split in December 2025.
+        </p>
+      </section>
+
       <section class="mode-switch card">
         <div class="switch-group" id="assetSwitch">
           <button class="chip active" data-asset="stocks">Stocks</button>
