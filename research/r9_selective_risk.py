@@ -94,6 +94,15 @@ def validate_r8_intervals(frame: pd.DataFrame) -> None:
         raise ValueError("Ready intervals require nonnegative finite width/bounds")
     if (ready.interval_upper < ready.interval_lower).any():
         raise ValueError("Inverted interval")
+    # Width must have been computed solely from the issue-time bounds.
+    recomputed_width = (
+        (ready.interval_upper - ready.interval_lower) / ready.last_observed_close
+    )
+    if not np.allclose(
+        recomputed_width.to_numpy(float),
+        ready.relative_width.to_numpy(float), atol=1e-10, rtol=1e-9,
+    ):
+        raise ValueError("R8 relative_width differs from issued interval bounds")
     actual_covered = (ready.interval_lower <= ready.actual) & (
         ready.actual <= ready.interval_upper
     )
