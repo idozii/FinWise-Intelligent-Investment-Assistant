@@ -1,0 +1,63 @@
+{
+  "protocol": "finwise-r7-estimand-and-evaluation-readiness-v1",
+  "status": "DRAFT_BLOCKED_NO_TEST_EXECUTION",
+  "prepared_after": "M5-v2 frozen first evaluation and R6 post-hoc event audit",
+  "primary_question": "Can calibrated and selective financial forecasting maintain reliability under market regime shifts without future-label leakage?",
+  "prior_explored_assets": [
+    "AAPL",
+    "MSFT",
+    "SPY",
+    "TSLA",
+    "GLD",
+    "IWM",
+    "XLE",
+    "XLV"
+  ],
+  "price_estimand": {
+    "legacy": "Unadjusted raw Close used for M5-v2 original first-run (retained untouched)",
+    "proposed": "Split-neutral log return with event-specific as-of metadata and explicitly documented dividends; candidate only, not yet authorized evaluation",
+    "requires_decision": [
+      "raw vs split-adjusted vs dividend-adjusted vs total return",
+      "reinvestment and dividends",
+      "close definitions and timezone",
+      "what is known/announced at forecast origin",
+      "training feature availability as of each refit",
+      "potential vendor retrospective revisions",
+      "asset survivorship and delistings"
+    ],
+    "prohibited": [
+      "Do not silently reuse Tiingo adjClose across earlier origins without point-in-time evidence",
+      "Do not filter split crossing observations after viewing error",
+      "Do not reframe corrected M5 as first untouched test"
+    ]
+  },
+  "official_event_registry": "research/protocols/r6_verified_corporate_actions_v1.json",
+  "required_new_holdout": {
+    "asset_set": null,
+    "start_date": null,
+    "end_date": null,
+    "data_vendor": null,
+    "licensing_authorization": null,
+    "provenance_sha256": null,
+    "independence_attestation": null,
+    "execution_authorization": false
+  },
+  "evaluation_gate": "BLOCKED_UNTIL_PRECOMMITTED_NEW_SCOPE_AND_PERMISSIONS",
+  "candidate_methods": [
+    "naive_persistence",
+    "fixed_rolling_calibration",
+    "adaptive_calibration",
+    "regime_conditioned_calibration",
+    "selective_abstention"
+  ],
+  "candidate_endpoints": [
+    "paired_loss_per_origin",
+    "empirical_coverage",
+    "interval_width",
+    "acceptance_rate",
+    "risk_coverage_tradeoff",
+    "abstention_by_regime"
+  ],
+  "analysis_policy": "Prior M5 results are development evidence only. Comparisons, scope and hypotheses must be frozen before the first new evaluation; corrections after outcome review are labeled exploratory.",
+  "confirmation_policy": "No new historical asset/time set is designated by this draft, and this artifact never authorizes test execution."
+}
