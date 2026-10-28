@@ -15,6 +15,7 @@ import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
 from backend.contracts import capabilities_document, legacy_forecast_metadata
 from backend.research_evidence import load_export
+from backend.model_explanations import load_explanations
 
 app = FastAPI(title="FinWise API", version="1.0.0")
 
@@ -322,6 +323,21 @@ def _run_forecast(close_series: pd.Series, days: int, model_name: str) -> tuple[
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "dataDir": str(DATA_DIR)}
+
+
+@app.get("/api/research/explanations")
+def historical_ridge_explanations() -> dict[str, object]:
+    """Optional offline M4.1 aggregate. No current model fits or test assets."""
+    p = Path(os.getenv(
+        "FINWISE_EXPLANATIONS_PATH",
+        REPO_ROOT / "reports" / "backtest" / "w3_ridge_explanations.json"
+    )).expanduser()
+    try:
+        return load_explanations(p)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="No audited Ridge explanations configured")
+    except (ValueError, OSError, UnicodeError) as exc:
+        raise HTTPException(status_code=422, detail="Ridge explanation export failed validation") from exc
 
 
 @app.get("/api/research/evidence")

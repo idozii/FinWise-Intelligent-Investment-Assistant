@@ -313,3 +313,18 @@ th {
 .research-table td { font-variant-numeric: tabular-nums; }
 .research-evidence-card [hidden] { display: none !important; }
 @media (max-width: 620px) { .research-summary-grid { grid-template-columns: 1fr; } }
+
+
+/* W3: separate model-internal research attributions from live predictions. */
+.model-explanations-card { margin: 16px 0; }
+.explanation-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0; }
+.explanation-controls label { color:var(--muted); font-size:.8rem; font-weight:600; }
+.explanation-controls select { background:white; border:1px solid var(--line); border-radius:8px; color:var(--ink); padding:8px 12px; }
+.explanation-bars { display:grid; gap:12px; margin:14px 0; }
+.explanation-row { display:grid; grid-template-columns:minmax(130px, 1.2fr) minmax(100px, 3fr) 80px; gap:10px; align-items:center; font-size:.86rem; }
+.explanation-name { overflow-wrap:anywhere; font-family:"IBM Plex Mono",monospace; }
+.explanation-track { height:12px; background:rgba(47,111,98,.12); border-radius:99px; overflow:hidden; }
+.explanation-fill { height:100%; background:var(--accent-2); border-radius:99px; }
+.explanation-value { text-align:right; font-variant-numeric:tabular-nums; }
+.model-explanations-card [hidden] { display:none !important; }
+@media (max-width:600px) { .explanation-row { grid-template-columns: 100px minmax(60px,1fr) 64px; gap:6px; font-size:.75rem; } }

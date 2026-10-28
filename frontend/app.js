@@ -25,6 +25,13 @@ const researchRowsEl = document.getElementById("researchEvidenceRows");
 const researchWinsEl = document.getElementById("researchWins");
 const researchCiEl = document.getElementById("researchCi");
 const researchCoverageEl = document.getElementById("researchCoverage");
+const explanationStatusEl = document.getElementById("explanationStatus");
+const explanationDetailsEl = document.getElementById("explanationDetails");
+const explanationAssetEl = document.getElementById("explanationAsset");
+const explanationHorizonEl = document.getElementById("explanationHorizon");
+const explanationReconstructionEl = document.getElementById("explanationReconstruction");
+const explanationBarsEl = document.getElementById("explanationBars");
+let explanationEvidence = null;
 
 let historyChart;
 let forecastChart;
@@ -160,6 +167,68 @@ async function loadResearchEvidence() {
       "No validated local research export available. Live models remain unvalidated; run the offline W2 exporter to view historical results.";
   }
 }
+
+function renderModelExplanations() {
+  if (!explanationEvidence) return;
+  const selected = explanationEvidence.results.find(
+    (row) => row.asset === explanationAssetEl.value &&
+             row.horizon === Number(explanationHorizonEl.value)
+  );
+  explanationBarsEl.replaceChildren();
+  if (!selected) {
+    explanationReconstructionEl.textContent = "No matching historical explanation.";
+    return;
+  }
+  explanationReconstructionEl.textContent =
+    `32 historical origins · max price reconstruction error: ${selected.maxReconstructionError.toExponential(2)} · units: predicted log-return`;
+  const maxMagnitude = Math.max(
+    1e-12, ...selected.features.map((x) => x.meanAbsLogReturnContribution)
+  );
+  for (const feature of selected.features) {
+    const item = document.createElement("div");
+    item.className = "explanation-row";
+    const name = document.createElement("div");
+    name.textContent = feature.name;
+    name.className = "explanation-name";
+    const track = document.createElement("div");
+    track.className = "explanation-track";
+    const fill = document.createElement("div");
+    fill.className = "explanation-fill";
+    fill.style.width = `${Math.max(0, Math.min(100, 100 * feature.meanAbsLogReturnContribution / maxMagnitude))}%`;
+    track.appendChild(fill);
+    const value = document.createElement("div");
+    value.className = "explanation-value";
+    value.textContent = feature.meanAbsLogReturnContribution.toFixed(5);
+    item.append(name, track, value);
+    explanationBarsEl.appendChild(item);
+  }
+}
+
+async function loadModelExplanations() {
+  explanationDetailsEl.hidden = true;
+  explanationEvidence = null;
+  explanationBarsEl.replaceChildren();
+  try {
+    const payload = await fetchJson("/api/research/explanations");
+    if (payload.schemaVersion !== "finwise-ridge-explanation-development-v1" ||
+        payload.mode !== "HISTORICAL_EXPLORATORY_MODEL_INTERNAL_NOT_LIVE" ||
+        payload.attributionType !== "exact_linear_model_decomposition_not_SHAP_not_causal" ||
+        !Array.isArray(payload.results) || payload.results.length !== 8) {
+      throw new Error("Unrecognized model explanation schema");
+    }
+    explanationEvidence = payload;
+    explanationDetailsEl.hidden = false;
+    explanationStatusEl.textContent =
+      "Audited M4.1 development explanations loaded. Not derived from live forecasts.";
+    renderModelExplanations();
+  } catch {
+    explanationStatusEl.textContent =
+      "No validated M4.1 development export configured. The live ARIMA forecast has no Ridge explanation.";
+  }
+}
+
+explanationAssetEl.addEventListener("change", renderModelExplanations);
+explanationHorizonEl.addEventListener("change", renderModelExplanations);
 
 async function loadSymbols() {
   const endpoint = activeAsset === "stocks" ? "/api/stocks" : "/api/crypto/coins";
@@ -452,6 +521,7 @@ modelSelect.addEventListener("change", async () => {
 
 apiInput.addEventListener("change", async () => {
   await loadResearchEvidence();
+  await loadModelExplanations();
   await loadCapabilities();
   await loadSymbols();
   await refreshData();
@@ -487,6 +557,7 @@ chartSwitch.addEventListener("click", async (event) => {
     syncLabels();
     await loadCapabilities();
     await loadResearchEvidence();
+    await loadModelExplanations();
     await loadForecastModels();
     await loadSymbols();
     await refreshData();
