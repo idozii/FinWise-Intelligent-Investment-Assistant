@@ -17,6 +17,8 @@ const forecastTableBody = document.getElementById("forecastTableBody");
 const todayValueEl = document.getElementById("todayValue");
 const dataAsOfValueEl = document.getElementById("dataAsOfValue");
 const modelValueEl = document.getElementById("modelValue");
+const capabilityStatusEl = document.getElementById("capabilityStatus");
+const forecastEvidenceEl = document.getElementById("forecastEvidence");
 
 let historyChart;
 let forecastChart;
@@ -87,6 +89,23 @@ async function fetchJson(path) {
     throw new Error(msg || `Request failed: ${res.status}`);
   }
   return res.json();
+}
+
+async function loadCapabilities() {
+  // Fail conservatively for older API deployments: never imply validation.
+  try {
+    const contract = await fetchJson("/api/capabilities");
+    if (contract.contractVersion !== "finwise-web-api-v1.1" ||
+        contract.forecastReliability?.legacyIntervalsEmpiricallyValidated !== false ||
+        contract.researchModelIntegration !== "historical_offline_only_not_in_live_forecast_api") {
+      throw new Error("Unexpected API contract version or status");
+    }
+    capabilityStatusEl.textContent =
+      "Live models: legacy statistical forecasts. Ridge/conformal research remains offline.";
+  } catch {
+    capabilityStatusEl.textContent =
+      "API contract unavailable: live forecast calibration is not verified.";
+  }
 }
 
 async function loadSymbols() {
@@ -314,6 +333,12 @@ async function refreshData() {
     setMetricText(forecastAvgEl, fmtMoney(avgForecast));
     dataAsOfValueEl.textContent = fmtDate(historyData.history[historyData.history.length - 1].date);
     modelValueEl.textContent = forecastData.model || "-";
+    const evidence = forecastData.metadata;
+    forecastEvidenceEl.textContent =
+      evidence?.intervalEmpiricallyCalibrated === false &&
+      evidence?.researchEvidenceAttached === false
+        ? "Unvalidated heuristic interval. No 95% coverage guarantee; not investment advice."
+        : "Forecast reliability not verified by this API. Do not treat bounds as calibrated.";
 
     toggleHistoryMode();
     if (activeAsset === "stocks" && activeChart === "candlestick") {
@@ -373,6 +398,7 @@ modelSelect.addEventListener("change", async () => {
 });
 
 apiInput.addEventListener("change", async () => {
+  await loadCapabilities();
   await loadSymbols();
   await refreshData();
 });
@@ -405,6 +431,7 @@ chartSwitch.addEventListener("click", async (event) => {
   try {
     todayValueEl.textContent = fmtDate(new Date());
     syncLabels();
+    await loadCapabilities();
     await loadForecastModels();
     await loadSymbols();
     await refreshData();

@@ -21,9 +21,9 @@
     <main class="container">
       <header class="hero">
         <p class="eyebrow">FinWise Intelligence</p>
-        <h1>Trade Smarter With Live Visuals</h1>
+        <h1>Explore Market Data With Evidence</h1>
         <p class="subtitle">
-          Analyze price behavior, compare daily movement, and preview one-week forecasts from your processed market datasets.
+          Explore historical market behavior and illustrative forecasts. Live API intervals are heuristic and have not been empirically calibrated.
         </p>
         <div class="status-row">
           <span class="status-pill"><strong>Today:</strong> <span id="todayValue"></span></span>
@@ -31,6 +31,16 @@
           <span class="status-pill"><strong>Forecast Model:</strong> <span id="modelValue">-</span></span>
         </div>
       </header>
+
+      <section class="card" aria-label="Forecast reliability and provenance">
+        <p class="eyebrow">Reliability &amp; evidence</p>
+        <p id="capabilityStatus" role="status" aria-live="polite">
+          Checking API capabilities. Research benchmarks are separate from live predictions.
+        </p>
+        <p id="forecastEvidence" role="status" aria-live="polite">
+          Legacy forecast intervals are unvalidated estimates, not 95% coverage guarantees.
+        </p>
+      </section>
 
       <section class="mode-switch card">
         <div class="switch-group" id="assetSwitch">
@@ -94,8 +104,8 @@
               <tr>
                 <th>Date</th>
                 <th>Predicted Close</th>
-                <th>Lower 95%</th>
-                <th>Upper 95%</th>
+                <th>Lower bound (heuristic)</th>
+                <th>Upper bound (heuristic)</th>
               </tr>
             </thead>
             <tbody id="forecastTableBody"></tbody>
