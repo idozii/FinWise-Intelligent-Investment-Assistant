@@ -350,3 +350,9 @@ th {
   .policy-method-cards { grid-template-columns:1fr; }
   .policy-controls select { flex:1 1 70px; }
 }
+/* W6 research-portfolio navigation shortcut */
+.portfolio-shortcut { margin: 13px 0 18px; }
+.portfolio-shortcut a { display:inline-flex; align-items:center; gap:9px;
+  color:var(--accent-2); border-bottom:1px solid currentColor;
+  font-size:.87rem; font-weight:700; text-decoration:none; padding-bottom:3px; }
+.portfolio-shortcut a:hover { opacity:.75; }
