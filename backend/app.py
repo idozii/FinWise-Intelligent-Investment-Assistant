@@ -38,6 +38,17 @@ app.add_middleware(
     allow_headers=["Accept", "Content-Type"],
 )
 
+
+@app.middleware("http")
+async def minimal_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"]="nosniff"
+    response.headers["Referrer-Policy"]="no-referrer"
+    response.headers["X-Frame-Options"]="DENY"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"]="no-store"
+    return response
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = Path(os.getenv("FINWISE_DATA_DIR", REPO_ROOT / "data")).expanduser().resolve()
 DATA_DIR = DATA_ROOT / "processed"
@@ -285,7 +296,11 @@ def _forecast_holt_winters(close_series: pd.Series, days: int) -> tuple[np.ndarr
 
 
 def _forecast_arima(close_series: pd.Series, days: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    train = close_series.dropna().astype(float).tail(min(600, len(close_series)))
+    # statsmodels needs a continuous integer index to issue forward forecasts;
+    # reset row IDs, not the chronological observed values or forecast dates.
+    train = (close_series.dropna().astype(float)
+             .tail(min(600, len(close_series)))
+             .reset_index(drop=True))
     if train.shape[0] < 40:
         return _forecast_linear_fallback(train, days)
 
@@ -323,7 +338,23 @@ def _run_forecast(close_series: pd.Series, days: int, model_name: str) -> tuple[
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "dataDir": str(DATA_DIR)}
+    """Minimal path-safe liveness response; never return internal data directories."""
+    return {"status":"ok"}
+
+
+@app.get("/ready")
+def ready() -> dict[str, object]:
+    """Offline readiness: required portfolio and dashboard frontend assets."""
+    required=("index.html","styles.css","app.js",
+              "research.html","research.css","research.js")
+    present=all((FRONTEND_DIR / name).is_file() for name in required)
+    return {
+        "status":"ready" if present else "degraded",
+        "frontendAssetsPresent":present,
+        "researchExportsRequiredForLiveness":False,
+        "externalDataProviderProbed":False,
+        "livePredictionValidated":False,
+    }
 
 
 @app.get("/api/research/reliability-policies")
