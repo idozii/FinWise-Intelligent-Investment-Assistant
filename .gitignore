@@ -7,3 +7,6 @@ data/processed/*.csv
 
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# Offline research outputs; generated results are not versioned
+reports/backtest/
