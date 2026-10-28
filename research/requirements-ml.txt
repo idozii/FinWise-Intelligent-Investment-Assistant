@@ -1,0 +1,4 @@
+# Optional extra dependencies for the M2 exploratory offline ML benchmark
+scikit-learn>=1.4,<2
+xgboost>=2,<4
+lightgbm>=4,<5
