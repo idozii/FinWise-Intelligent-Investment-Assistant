@@ -1,151 +1,98 @@
-# FinWise-Intelligent-Investment-Assistant
+# FinWise — Evidence-Centered Financial Forecasting Research
 
-## Goals
+**Research portfolio and educational market-data dashboard.** FinWise asks whether a more complex forecaster beats a persistent last-close baseline, how reliable empirical prediction intervals are, and what happens when a prediction policy abstains.
 
-Predict stock/ crypto prices + give recommendations with dashboard visualization.
+**Scientific boundary:** the public market dashboard's ARIMA, Holt-Winters, linear-trend and moving-average forecasts are **illustrative, not empirically calibrated**. Offline Ridge/conformal experiments do **not** validate live forecasting or any trading strategy. No investment advice, profit or theoretical coverage guarantees are claimed.
 
-## Implemented Tech Stack (as of October 2026)
+## Interfaces and technology
 
-- **Backend:** Python + FastAPI
-- **Frontend:** static HTML/CSS/JavaScript, Chart.js, Plotly
-- **Forecasts exposed by API:** ARIMA(5,1,0), Holt-Winters (damped trend), linear trend, moving-average
-- **Data:** processed local CSVs; Yahoo Finance and CoinGecko retrieval when supported
-- **Deployment:** Docker / Uvicorn / static FastAPI mount
+| Component | Implemented |
+|---|---|
+| API | FastAPI, Python |
+| Market UI | HTML/CSS/JS, Chart.js, Plotly, stock and crypto history |
+| Legacy live forecasts | ARIMA, Holt-Winters, Linear Trend, Moving Average |
+| Research panels | Historical external-asset benchmark, Ridge model-internal contributions, development risk–availability policies |
+| Research portfolio | Standalone `/research.html` with methods, results and R10 gate |
+| Local scientific evidence | R6 integrity audit, R8 delayed-feedback calibration, R9 abstention sensitivity, R10 research gate, R11 manuscript |
+| Provenance | SHA-256 manifests, frozen source protocols, deterministic CI tests |
 
-**Not integrated into the live API:** LSTM, Prophet, Django, React/React Native and PostgreSQL. Some appear in an exploratory training script or earlier project plans, but should not be described as shipped features.
+**Not currently in the production API:** a validated live Ridge model, online conformal guarantee, trading execution, portfolio advice or real-time market-risk protection.
 
-## Research Evaluation — New
+## Start locally
 
-Offline, leakage-safe expanding-window walk-forward comparison against a naive last-observation baseline, with per-horizon MAE, RMSE, directional-accuracy diagnostics, explicit statistical-model fallbacks, dataset SHA-256 provenance and automated tests.
-
-Run `python -m pytest -q tests/test_backtest.py`. See [research/README.md](research/README.md) for the documented protocol and stock/crypto CLI examples.
-
-**Research status:** synthetic tests validate evaluator logic; no out-of-sample market performance, empirical coverage of 95% intervals, trading return or investment recommendation has been established. FinWise is an educational decision-support prototype, not financial advice.
-
-## Datasets
-
-- Yahoo Finance: yfinance Python API
-- Alpha Vantage: API key required
-- CoinGecko: crypto market data
-
-## Data Storage
-
-Large CSV datasets should not be committed to GitHub.
-
-- The repo now expects market data under a configurable base directory via `FINWISE_DATA_DIR`.
-- Default local path is `./data`, but you can point it anywhere on disk, for example `/srv/finwise-data`.
-- Required layout:
-
-```text
-FINWISE_DATA_DIR/
-	raw/
-	processed/
-```
-
-- The repo ignores `data/raw/*.csv` and `data/processed/*.csv` by default.
-- If CSVs were already added to git index, untrack them once with:
+From repository root:
 
 ```bash
-git rm --cached data/raw/*.csv data/processed/*.csv
-```
-
-Then keep the files locally or move them to external storage such as a mounted disk, S3-backed sync folder, or a server path outside the repo.
-
-## Run Web Dashboard
-
-### 1) Start backend API
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export FINWISE_DATA_DIR=/absolute/path/to/your/data
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
-```
-
-### 2) Open frontend
-
-Serve the frontend folder with a simple static server:
-
-```bash
-cd frontend
-python -m http.server 5500
-```
-
-If you need to regenerate data first:
-
-```bash
-cd scripts
-export FINWISE_DATA_DIR=/absolute/path/to/your/data
-python etl.py
-```
-
-Open this URL in your browser:
-
-- [http://127.0.0.1:5500](http://127.0.0.1:5500)
-
-The dashboard will load stock symbols from your processed data and show:
-
-- Historical close-price charts
-- Line/Candlestick chart mode for stocks
-- Multiple forecast model choices: ARIMA, Holt-Winters, Linear Trend, Moving Average
-- 7-step point forecasts with estimated upper/lower intervals in the prediction table (interval coverage not yet calibrated)
-- Prediction table and quick metrics
-- Crypto dashboard tab using processed coin data plus a larger built-in asset universe
-
-### API summary
-
-- /api/forecast-models
-- /api/stocks
-- /api/stocks/{symbol}/history
-- /api/stocks/{symbol}/forecast
-- /api/crypto/coins
-- /api/crypto/{coin}/history
-- /api/crypto/{coin}/forecast
-
-## Production Deployment
-
-In production, the backend serves the frontend static files from the same origin.
-That means users do not need to manually set API URLs.
-
-### Option 1: Run directly on a server
-
-```bash
-cd /path/to/FinWise-Intelligent-Investment-Assistant
-python -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-export FINWISE_DATA_DIR=/srv/finwise-data
-uvicorn backend.app:app --host 0.0.0.0 --port 8000 --workers 2
+python -m pip install -r backend/requirements.txt -r research/requirements-ml.txt \
+  'httpx>=0.27,<1' 'pytest>=8,<10'
+uvicorn backend.app:app --reload --port 8000
 ```
 
 Open:
+- [Research portfolio](http://127.0.0.1:8000/research.html)
+- [Market dashboard](http://127.0.0.1:8000/)
+- [API capabilities](http://127.0.0.1:8000/api/capabilities)
+- [Operational readiness](http://127.0.0.1:8000/ready)
 
-- [http://YOUR_SERVER_IP:8000](http://YOUR_SERVER_IP:8000)
-
-### Option 2: Docker
-
-Build image:
-
-```bash
-docker build -t finwise:latest .
-```
-
-Run container:
+**Optional research exports:** the portfolio page renders historical metrics only if the related audited offline JSON files exist. If absent, it displays a clear unavailable state—no hard-coded optimistic results.
 
 ```bash
-docker run -d \
-	--name finwise-app \
-	-p 8000:8000 \
-	-v /srv/finwise-data:/app/data \
-	finwise:latest
+# Requires the original, unmodified local Tiingo M5-v2 sources and first-run outputs.
+python -m research.w2_evidence_export \
+  --result-dir reports/backtest/m5_tiingo_v2 \
+  --output reports/backtest/w2_research_evidence.json
+
+# Requires local R8/R9 development artifacts and matching original source hashes.
+python -m research.w4_policy_export \
+  --r8-dir reports/backtest/r8_development \
+  --r9-dir reports/backtest/r9_risk_coverage_dev \
+  --dev-predictions reports/backtest/m21_multiasset/asset_predictions.csv \
+  --output reports/backtest/w4_reliability_policies.json
+
+# Optional M4.1 exploratory Ridge explanations, with SHA checks.
+python -m research.w3_attribution_export \
+  --attributions-dir reports/backtest/m41_explanations \
+  --output reports/backtest/w3_ridge_explanations.json
 ```
 
-Open:
+If you generated these files on another Git branch, they remain on your local disk unless moved or overwritten. Do not commit vendor-licensed raw prices, API tokens or source data snapshots to this public repository.
 
-- [http://YOUR_SERVER_IP:8000](http://YOUR_SERVER_IP:8000)
+## What the research actually found
 
-## Contributors
+The M5-v2 first retrospective external-asset evaluation studied GLD, IWM, XLE and XLV with 64 eligible origins per asset/horizon, H1 and H7. Ridge's observed MAE was higher than persistence in **all 8/8** comparisons; **all 8/8** descriptive paired bootstrap intervals included zero. Nominal 90% Ridge ready-origin coverage met/exceeded 90% in **2/8** cells. These are historical/descriptive findings, not prospective confirmation.
 
-- 🖥️ [idozii](https://github.com/idozii)
+The R6 audit also documented an official XLE 2-for-1 share split effective 5 December 2025, which is crossed by a large-error forecast; raw Close is not a split-neutral economic return. The original results were not modified.
+
+On *development-only* AAPL/MSFT/SPY/TSLA origins, R8's delayed-feedback ACI-style calibration showed higher ready-origin coverage in 14/16 groups and wider mean relative intervals in 16/16. R9 demonstrated that a 10% width cap can sharply reduce acceptance; on MSFT Ridge H7, adaptive accepted 17/143 vs 40/143 for fixed rolling and selected relative MAE was 3.16% vs 2.90% on different origin subsets. This is **not** evidence of an independently superior method.
+
+**R10 remains blocked:** a genuinely unused dataset, point-in-time split/dividend-safe target, data rights, frozen policy, and precommitted statistical analysis are required before new independent testing.
+
+## Research docs
+
+- [First M5-v2 evidence audit](research/M51_FIRST_RUN_EVIDENCE.md)
+- [XLE corporate-action case study](research/R6_CORPORATE_ACTIONS.md)
+- [R7 economic estimand gate](research/R7_PRICE_ESTIMAND_PROTOCOL.md)
+- [R8 exploratory adaptive calibration](research/R8_ADAPTIVE_DEVELOPMENT.md)
+- [R9 selective risk / availability](research/R9_SELECTIVE_RISK_DEV.md)
+- [R10 independent evaluation readiness](research/R10_INDEPENDENT_EVALUATION_GATE.md)
+- [R11 manuscript draft](research/paper/R11_MANUSCRIPT_DRAFT.md)
+
+The paper draft is not submitted, accepted or a proven novel algorithm.
+
+## Deployment, data rights and security
+
+Use `FINWISE_DATA_DIR` to point to local market data outside the Git working tree. Do not publish provider tokens or redistribute raw market bars without confirming the applicable license. Market provider APIs may rate-limit requests.
+
+`/health` returns path-free liveness; `/ready` checks local frontend files with no network dependency. HTTP responses include minimal no-sniff/referrer/frame headers and `/api/` endpoints use no-store.
+
+**Public deployment is not yet a production security certification**: rate limiting, CPU/resource controls, rate-limited vendor caching, dependency scanning, HTTPS/domain/CORS review, source licensing and operator monitoring still require deployment-specific approval. Run locally before any public release.
+
+## Development checks
+
+```bash
+python -m pytest -q tests/test_w6_portfolio.py tests/test_w5_operational_safety.py tests/test_w51_arima_index.py
+```
+
+The repository currently uses stacked review branches for research and product milestones. Work should be reviewed and integrated in dependency order; do not assume `main` already contains every experimental branch.
+
+**Maintainer:** [idozii](https://github.com/idozii).
