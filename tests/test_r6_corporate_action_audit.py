@@ -74,7 +74,7 @@ def test_audit_rejects_same_output_location(tmp_path):
 def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path):
     spec = json.loads(json.dumps(load_v2_protocol()))
     spec.update({
-        "reserved_external_assets": ["XLE"], "min_train": 70,
+        "min_train": 70,
         "step": 7, "horizons": [1, 7],
         "forecast_origin_start": "2025-03-01",
         "forecast_origin_end": "2025-12-31",
@@ -85,16 +85,19 @@ def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path):
     n = 400
     idx = np.arange(n)
     dates = pd.date_range("2025-01-01", periods=n, tz="UTC")
-    # Synthetic sequence with artificial stock split on the official split date.
-    close = 100 * np.exp(.0004 * idx + .01 * np.sin(idx / 8))
-    close[dates >= pd.Timestamp("2025-12-05", tz="UTC")] /= 2
-    raw = pd.DataFrame({"Date": dates, "Close": close})
+    # Four frozen assets, with a synthetic split in XLE only.
     folder = tmp_path / "prices"
-    save_snapshot("XLE", folder, raw)
-    file = folder / "XLE_daily_processed.csv"
+    pairs = []
+    for ticker in ("GLD", "IWM", "XLE", "XLV"):
+        close = 100 * np.exp(.0004 * idx + .01 * np.sin(idx / 8))
+        if ticker == "XLE":
+            close[dates >= pd.Timestamp("2025-12-05", tz="UTC")] /= 2
+        raw = pd.DataFrame({"Date": dates, "Close": close})
+        save_snapshot(ticker, folder, raw)
+        pairs.append((ticker, folder / f"{ticker}_daily_processed.csv"))
     original = tmp_path / "original"
-    preflight(spec, [("XLE", file)], original, protocol_sha256=LOCKED_V2_SHA256)
-    evaluate(spec, [("XLE", file)], original, protocol_sha256=LOCKED_V2_SHA256)
+    preflight(spec, pairs, original, protocol_sha256=LOCKED_V2_SHA256)
+    evaluate(spec, pairs, original, protocol_sha256=LOCKED_V2_SHA256)
     baseline = {p.name: p.read_bytes() for p in original.iterdir() if p.is_file()}
     result = audit(original, tmp_path / "r6")
     assert result["excluded_origins"] == 0
@@ -102,5 +105,5 @@ def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path):
     for name, content in baseline.items():
         assert (original/name).read_bytes() == content
     df = pd.read_csv(tmp_path / "r6" / "r6_event_impact_descriptive.csv")
-    assert len(df) == 4
+    assert len(df) == 16
     assert df.loc[(df.asset == "XLE") & (df.horizon_step == 7), "n_crossing_split"].max() >= 1
