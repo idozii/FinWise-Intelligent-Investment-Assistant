@@ -37,6 +37,18 @@ app.add_middleware(
     allow_headers=["Accept", "Content-Type"],
 )
 
+
+@app.middleware("http")
+async def minimal_security_headers(request, call_next):
+    """Conservative HTTP safety defaults without changing prediction values."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "DENY"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = Path(os.getenv("FINWISE_DATA_DIR", REPO_ROOT / "data")).expanduser().resolve()
 DATA_DIR = DATA_ROOT / "processed"
@@ -322,7 +334,24 @@ def _run_forecast(close_series: pd.Series, days: int, model_name: str) -> tuple[
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "dataDir": str(DATA_DIR)}
+    """Liveness only: never reveal local paths, credentials or data state."""
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def ready() -> dict[str, object]:
+    """Network-free infrastructure check; research artifacts are optional."""
+    needed = ("index.html", "styles.css", "app.js")
+    return {
+        "status": "ready" if all((FRONTEND_DIR / name).is_file()
+                                for name in needed) else "degraded",
+        "frontendAssetsPresent": all(
+            (FRONTEND_DIR / name).is_file() for name in needed
+        ),
+        "researchExportsRequiredForLiveness": False,
+        "externalDataProviderProbed": False,
+        "livePredictionValidated": False,
+    }
 
 
 @app.get("/api/research/explanations")
