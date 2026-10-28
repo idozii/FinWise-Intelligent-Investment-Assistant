@@ -69,3 +69,37 @@ def test_dashboard_missing_file_or_column_fails_closed(tmp_path):
     (interval / "interval_metrics.csv").unlink()
     with pytest.raises(FileNotFoundError):
         build_payload(robust, interval)
+
+
+def test_optional_ridge_attribution_is_grounded_and_visible(tmp_path):
+    robust, interval = write_inputs(tmp_path)
+    attribution = tmp_path / "ridge_feature_summary.csv"
+    pd.DataFrame([{
+        "asset": "AAPL", "horizon_step": 1,
+        "feature": "log_return_1", "n_origins": 3,
+        "mean_abs_contribution_log_return": .003,
+        "fraction_positive_contribution": .75,
+        "attribution_type": "exact_linear_model_decomposition_not_SHAP_not_causal"
+    }]).to_csv(attribution, index=False)
+    payload = build_payload(robust, interval,
+                            attribution_summary_path=attribution)
+    assert payload["attributions"][0]["feature"] == "log_return_1"
+    assert "ridge_feature_summary.csv" in payload["source_sha256"]
+    output = tmp_path / "dashboard_with_explanations.html"
+    generate(robust, interval, output, attribution_summary_path=attribution)
+    assert "Ridge — interpretable model contributions" in output.read_text()
+    assert "log_return_1" in output.read_text()
+
+
+def test_unverified_attribution_labels_are_rejected(tmp_path):
+    robust, interval = write_inputs(tmp_path)
+    attribution = tmp_path / "fake.csv"
+    pd.DataFrame([{
+        "asset": "AAPL", "horizon_step": 1,
+        "feature": "log_return_1", "n_origins": 3,
+        "mean_abs_contribution_log_return": .003,
+        "fraction_positive_contribution": .75,
+        "attribution_type": "causal_SHAP"
+    }]).to_csv(attribution, index=False)
+    with pytest.raises(ValueError, match="Unexpected"):
+        build_payload(robust, interval, attribution_summary_path=attribution)

@@ -75,7 +75,22 @@ def validated_rows(source_path: Path, interval_path: Path) -> pd.DataFrame:
         raise ValueError("Uncalibrated forecasts cannot be accepted")
 
     paired["abs_error"] = (paired.actual - paired.predicted).abs()
-    paired["regime"] = paired.regime.astype(str)
+    # M3 copies the source's regime column into interval_predictions.csv.
+    # A Pandas merge therefore suffixes both copies; older M3 exports may
+    # omit regime on the interval side, so accept that schema as well.
+    if "regime_source" in paired.columns:
+        if "regime_interval" not in paired.columns:
+            raise ValueError("Source/interval regime columns are incomplete")
+        source_regime = paired["regime_source"]
+        interval_regime = paired["regime_interval"]
+        if (source_regime.isna().any() or interval_regime.isna().any()
+                or not source_regime.astype(str).equals(interval_regime.astype(str))):
+            raise ValueError("Source/interval regime values differ")
+    else:
+        source_regime = paired["regime"]
+        if source_regime.isna().any():
+            raise ValueError("Missing source regime values")
+    paired["regime"] = source_regime.astype(str)
     ready = paired.loc[paired.interval_ready]
     for col in ("interval_lower", "interval_upper", "relative_width"):
         if not np.isfinite(ready[col].to_numpy(dtype=float)).all():

@@ -130,3 +130,36 @@ def test_exact_origin_set_is_required(tmp_path):
     interval.to_csv(i, index=False)
     with pytest.raises(ValueError, match="count mismatch"):
         validated_rows(s, i)
+
+
+def test_m3_real_export_schema_preserves_regime_after_merge(tmp_path):
+    """M3 copies 'regime' into interval_predictions.csv, so both inputs have it."""
+    from research.uncertainty import intervals
+
+    source, _ = dataframes()
+    s = tmp_path / "asset_predictions.csv"
+    i = tmp_path / "interval_predictions.csv"
+    source.to_csv(s, index=False)
+    generated = intervals(
+        source, alpha=0.5, min_calibration=2, calibration_window=4,
+        max_relative_width=0.25,
+    )
+    assert "regime" in generated.columns
+    generated.to_csv(i, index=False)
+
+    validated = validated_rows(s, i)
+    assert set(validated["regime"]) == {"low", "high"}
+    assert len(validated) == len(source)
+    assert validated.interval_ready.any()
+    assert len(matched_selection_audit(validated)) == 1
+
+
+def test_mismatched_copied_regime_rejected(tmp_path):
+    s, i = store(tmp_path)
+    source = pd.read_csv(s)
+    interval = pd.read_csv(i)
+    interval["regime"] = source["regime"].to_numpy()
+    interval.loc[0, "regime"] = "incorrect"
+    interval.to_csv(i, index=False)
+    with pytest.raises(ValueError, match="regime values differ"):
+        validated_rows(s, i)
