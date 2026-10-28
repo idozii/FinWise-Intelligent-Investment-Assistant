@@ -16,7 +16,7 @@ from scripts.m5_download_tiingo import save_snapshot
 def local_prices(tmp_path):
     p = tmp_path / "XLE.csv"
     dates = pd.bdate_range("2025-11-28", "2025-12-17", tz="UTC")
-    closes = np.array([90., 91., 92., 45.8, 46., 46.5, 47., 47.2, 47.3, 47.4, 47.6, 47.8, 48., 48.2])
+    closes = np.array([90., 91., 92., 91.5, 91.6, 45.8, 46.5, 47., 47.2, 47.3, 47.4, 47.6, 47.8, 48.2])
     assert len(dates) == len(closes)
     pd.DataFrame({"Date": dates, "Close": closes}).to_csv(p, index=False)
     return p
@@ -82,7 +82,7 @@ def test_full_synthetic_first_run_audit_leaves_metrics_unchanged(tmp_path):
         "intervals": {"alpha": .1, "min_calibration": 10,
                       "calibration_window": 30, "max_relative_width": .3},
     })
-    n = 340
+    n = 400
     idx = np.arange(n)
     dates = pd.date_range("2025-01-01", periods=n, tz="UTC")
     # Synthetic sequence with artificial stock split on the official split date.
