@@ -29,7 +29,7 @@ def fixture_dataset(n=42):
                         "train_end":dates[k].date().isoformat(),
                         "target_date":dates[k+h].date().isoformat(),
                         "last_observed_close":last,
-                        "actual":last+1.8*np.sin(i/5)+.2,
+                        "actual":last+(20 if asset=="TSLA" and h==7 else 1.8)*np.sin(i/5)+.2,
                         "predicted":last+(0 if model=="naive" else .1),
                     })
     interval, scores=compare(pd.DataFrame(rows))
