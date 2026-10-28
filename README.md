@@ -4,13 +4,23 @@
 
 Predict stock/ crypto prices + give recommendations with dashboard visualization.
 
-## Tech Stack
+## Implemented Tech Stack (as of October 2026)
 
-- Backend: FastAPI/Django
-- Frontend: React / React Native
-- ML Model: Prophet / LSTM
-- Database: PostgreSQL
-- Container: Docker
+- **Backend:** Python + FastAPI
+- **Frontend:** static HTML/CSS/JavaScript, Chart.js, Plotly
+- **Forecasts exposed by API:** ARIMA(5,1,0), Holt-Winters (damped trend), linear trend, moving-average
+- **Data:** processed local CSVs; Yahoo Finance and CoinGecko retrieval when supported
+- **Deployment:** Docker / Uvicorn / static FastAPI mount
+
+**Not integrated into the live API:** LSTM, Prophet, Django, React/React Native and PostgreSQL. Some appear in an exploratory training script or earlier project plans, but should not be described as shipped features.
+
+## Research Evaluation — New
+
+Offline, leakage-safe expanding-window walk-forward comparison against a naive last-observation baseline, with per-horizon MAE, RMSE, directional-accuracy diagnostics, explicit statistical-model fallbacks, dataset SHA-256 provenance and automated tests.
+
+Run `python -m pytest -q tests/test_backtest.py`. See [research/README.md](research/README.md) for the documented protocol and stock/crypto CLI examples.
+
+**Research status:** synthetic tests validate evaluator logic; no out-of-sample market performance, empirical coverage of 95% intervals, trading return or investment recommendation has been established. FinWise is an educational decision-support prototype, not financial advice.
 
 ## Datasets
 
@@ -80,7 +90,7 @@ The dashboard will load stock symbols from your processed data and show:
 - Historical close-price charts
 - Line/Candlestick chart mode for stocks
 - Multiple forecast model choices: ARIMA, Holt-Winters, Linear Trend, Moving Average
-- 7-day forecast with confidence band
+- 7-step point forecasts with estimated upper/lower intervals in the prediction table (interval coverage not yet calibrated)
 - Prediction table and quick metrics
 - Crypto dashboard tab using processed coin data plus a larger built-in asset universe
 
