@@ -49,6 +49,35 @@ let activeAsset = "stocks";
 let activeChart = "line";
 let activeModel = "arima";
 
+let marketEnabled = false; // Fail closed until public-config explicitly permits this.
+
+
+async function loadPublicMode() {
+  try {
+    const config = await fetchJson("/api/public-config");
+    if (config.marketForecastsValidated !== false ||
+        config.historicalResearchIsNotLive !== true ||
+        typeof config.marketEnabled !== "boolean") {
+      throw new Error("Unrecognized public configuration");
+    }
+    marketEnabled = config.marketEnabled;
+  } catch {
+    marketEnabled = false;
+  }
+  document.body.classList.toggle("market-disabled", !marketEnabled);
+  const notice = document.getElementById("marketPreviewNotice");
+  notice.hidden = marketEnabled;
+  refreshBtn.disabled = !marketEnabled;
+  if (!marketEnabled) {
+    forecastEvidenceEl.textContent =
+      "Live market data and model fitting are disabled on this preview. "
+      + "The research sections remain retrospective and are not investment advice.";
+    modelValueEl.textContent = "Unavailable";
+    dataAsOfValueEl.textContent = "Not connected";
+  }
+}
+
+
 function inferDefaultApiBase() {
   const origin = window.location.origin;
 
@@ -568,6 +597,7 @@ function renderForecastTable(forecastRows) {
 }
 
 async function refreshData() {
+  if (!marketEnabled) return;
   const selected = symbolSelect.value;
   if (!selected) return;
 
@@ -693,13 +723,16 @@ chartSwitch.addEventListener("click", async (event) => {
   try {
     todayValueEl.textContent = fmtDate(new Date());
     syncLabels();
+    await loadPublicMode();
     await loadCapabilities();
     await loadResearchEvidence();
     await loadModelExplanations();
     await loadReliabilityPolicies();
-    await loadForecastModels();
-    await loadSymbols();
-    await refreshData();
+    if (marketEnabled) {
+      await loadForecastModels();
+      await loadSymbols();
+      await refreshData();
+    }
   } catch (err) {
     alert(`Unable to initialize app. ${err.message}`);
   }

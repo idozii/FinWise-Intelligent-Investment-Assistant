@@ -3,14 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FinWise | Stock Visualizer</title>
+    <title>FinWise | Market Explorer · Evidence-led Forecasting</title>
+    <meta name="description" content="Explore historical financial market prices alongside transparent research on forecasting accuracy, uncertainty and abstention.">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=w4-20261028" />
+    <link rel="stylesheet" href="./styles.css?v=w8-public-1" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   </head>
@@ -18,18 +19,35 @@
     <div class="background-orb orb-a"></div>
     <div class="background-orb orb-b"></div>
 
-    <main class="container">
+    <a class="skip-link" href="#market-content">Skip to market explorer</a>
+    <div class="site-topbar">
+      <nav class="topbar-inner" aria-label="Primary navigation">
+        <a class="site-logo" href="./research.html" aria-label="FinWise Research"><span class="logo-mark">F<span>W</span></span><span>FinWise</span><small>RESEARCH LAB</small></a>
+        <div class="nav-links">
+          <a href="./research.html">Overview</a>
+          <a class="nav-active" href="./index.html" aria-current="page">Market Explorer</a>
+          <a href="#research-detail">Evidence</a>
+          <a class="nav-github" href="https://github.com/idozii/FinWise-Intelligent-Investment-Assistant" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        </div>
+      </nav>
+    </div>
+    <main class="container" id="market-content">
       <header class="hero">
         <p class="eyebrow">FinWise Intelligence</p>
-        <h1>Explore Market Data With Evidence</h1>
+        <h1>Explore markets.<span class="hero-accent"> Question the forecast.</span></h1>
         <p class="subtitle">
-          Explore historical market behavior and illustrative forecasts. Live API intervals are heuristic and have not been empirically calibrated.
+          Visualize historical prices and illustrative statistical forecasts in a transparent research environment. Every model has limits—and we show them.
         </p>
         <p class="portfolio-shortcut">
           <a href="./research.html" aria-label="Read the FinWise research portfolio">
             Explore methodology, evidence and scientific limitations <span aria-hidden="true">↗</span>
           </a>
         </p>
+        <p class="site-legal-note">Illustrative estimates only; not investment advice. Legacy forecast bounds are unvalidated heuristics, not guaranteed confidence intervals.</p>
+        <div class="hero-actions">
+          <a href="#market-workspace" class="primary-action">Open market workspace <span aria-hidden="true">↘</span></a>
+          <a href="./research.html#evidence" class="secondary-action">Explore research evidence ↗</a>
+        </div>
         <div class="status-row">
           <span class="status-pill"><strong>Today:</strong> <span id="todayValue"></span></span>
           <span class="status-pill"><strong>Data As Of:</strong> <span id="dataAsOfValue">-</span></span>
@@ -47,6 +65,92 @@
         </p>
       </section>
 
+      <section class="workspace-title" id="market-workspace">
+          <div><p class="eyebrow">Market workspace</p><h2>Historical data, with context.</h2></div>
+          <span class="workspace-tag">ILLUSTRATIVE FORECASTS · NOT ADVICE</span>
+        </section>
+        <aside id="marketPreviewNotice" class="market-preview-notice" hidden role="status" aria-live="polite">
+          <strong>Research preview mode</strong>
+          <p>Live price fetching and forecast fitting are disabled on this public preview while data licensing, rate limits and resource controls are reviewed. You can still explore the research and reproducibility evidence.</p>
+          <a href="./research.html#evidence">View historical findings ↗</a>
+        </aside>
+        <section class="mode-switch card">
+        <div class="switch-group" id="assetSwitch">
+          <button class="chip active" data-asset="stocks">Stocks</button>
+          <button class="chip" data-asset="crypto">Crypto</button>
+        </div>
+        <div class="switch-group" id="chartSwitch">
+          <button class="chip active" data-chart="line">Line</button>
+          <button class="chip" data-chart="candlestick">Candlestick</button>
+        </div>
+      </section>
+
+      <section class="controls card">
+        <div class="control-group">
+          <label for="apiBase">API Base URL</label>
+          <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000" />
+        </div>
+        <div class="control-group">
+          <label id="assetLabel" for="symbolSelect">Stock Symbol</label>
+          <select id="symbolSelect"></select>
+        </div>
+        <div class="control-group">
+          <label for="modelSelect">Forecast Model</label>
+          <select id="modelSelect"></select>
+        </div>
+        <button id="refreshBtn">Refresh</button>
+      </section>
+
+      <section class="metrics">
+        <article class="card metric">
+          <h2>Latest Close</h2>
+          <p id="latestClose" class="metric-value">-</p>
+        </article>
+        <article class="card metric">
+          <h2>Daily Change</h2>
+          <p id="dailyChange" class="metric-value">-</p>
+        </article>
+        <article class="card metric">
+          <h2>Forecast Avg (7d)</h2>
+          <p id="forecastAvg" class="metric-value">-</p>
+        </article>
+      </section>
+
+      <section class="charts">
+        <article class="card chart-card">
+          <h2 id="historyTitle">Historical Close (Last 365 Days)</h2>
+          <canvas id="historyChart" class="chart-visible"></canvas>
+          <div id="candlestickChart" class="plot-hidden"></div>
+        </article>
+        <article class="card chart-card">
+          <h2 id="forecastTitle">Next 7 Trading Days Forecast</h2>
+          <canvas id="forecastChart"></canvas>
+        </article>
+      </section>
+
+      <section class="card table-card">
+        <h2>7-Day Prediction Table</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Predicted Close</th>
+                <th>Lower bound (heuristic)</th>
+                <th>Upper bound (heuristic)</th>
+              </tr>
+            </thead>
+            <tbody id="forecastTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="research-deep-dive" id="research-detail">
+        <div class="deep-dive-heading">
+          <p class="eyebrow">Evidence library</p>
+          <h2>See the limitations behind the models</h2>
+          <p>These are offline historical studies. They never validate the illustrative forecasts above.</p>
+          <a href="./research.html#evidence">Read the research methodology ↗</a>
+        </div>
       <section class="card research-evidence-card" aria-labelledby="researchEvidenceTitle">
         <div class="research-header">
           <div>
@@ -168,78 +272,10 @@
         </p>
       </section>
 
-      <section class="mode-switch card">
-        <div class="switch-group" id="assetSwitch">
-          <button class="chip active" data-asset="stocks">Stocks</button>
-          <button class="chip" data-asset="crypto">Crypto</button>
-        </div>
-        <div class="switch-group" id="chartSwitch">
-          <button class="chip active" data-chart="line">Line</button>
-          <button class="chip" data-chart="candlestick">Candlestick</button>
-        </div>
-      </section>
 
-      <section class="controls card">
-        <div class="control-group">
-          <label for="apiBase">API Base URL</label>
-          <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000" />
-        </div>
-        <div class="control-group">
-          <label id="assetLabel" for="symbolSelect">Stock Symbol</label>
-          <select id="symbolSelect"></select>
-        </div>
-        <div class="control-group">
-          <label for="modelSelect">Forecast Model</label>
-          <select id="modelSelect"></select>
-        </div>
-        <button id="refreshBtn">Refresh</button>
-      </section>
-
-      <section class="metrics">
-        <article class="card metric">
-          <h2>Latest Close</h2>
-          <p id="latestClose" class="metric-value">-</p>
-        </article>
-        <article class="card metric">
-          <h2>Daily Change</h2>
-          <p id="dailyChange" class="metric-value">-</p>
-        </article>
-        <article class="card metric">
-          <h2>Forecast Avg (7d)</h2>
-          <p id="forecastAvg" class="metric-value">-</p>
-        </article>
-      </section>
-
-      <section class="charts">
-        <article class="card chart-card">
-          <h2 id="historyTitle">Historical Close (Last 365 Days)</h2>
-          <canvas id="historyChart" class="chart-visible"></canvas>
-          <div id="candlestickChart" class="plot-hidden"></div>
-        </article>
-        <article class="card chart-card">
-          <h2 id="forecastTitle">Next 7 Trading Days Forecast</h2>
-          <canvas id="forecastChart"></canvas>
-        </article>
-      </section>
-
-      <section class="card table-card">
-        <h2>7-Day Prediction Table</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Predicted Close</th>
-                <th>Lower bound (heuristic)</th>
-                <th>Upper bound (heuristic)</th>
-              </tr>
-            </thead>
-            <tbody id="forecastTableBody"></tbody>
-          </table>
-        </div>
       </section>
     </main>
 
-    <script src="./app.js?v=w4-20261028"></script>
+    <script src="./app.js?v=w8-public-1"></script>
   </body>
 </html>
