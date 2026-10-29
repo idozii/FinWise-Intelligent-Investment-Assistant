@@ -102,3 +102,27 @@ tr:nth-child(even) td{background:#fcfdfc}
 @media(max-width:940px){.hero-grid,.split-section{grid-template-columns:1fr;gap:42px}.visual{max-width:570px}.method-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.navigation{align-items:flex-start;flex-direction:column;padding:20px 0}.navigation nav{gap:13px}.hero{padding:55px 0 70px}.section,.section-light,.section-ink{padding:60px 0}.section-header{flex-direction:column}.evidence-stats{grid-template-columns:1fr}.method-grid{grid-template-columns:1fr}.split-section{gap:28px}.gate{flex-direction:column}.policy-grid{grid-template-columns:1fr}.visual{box-shadow:12px 12px 0 #dfe9e1}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+
+/* W8 — public release research-first typography and evidence strip. */
+:root { --warm:#f9faf7;--navy:#17283f;--green:#0c7462;--border:#dbe6e1; }
+body {background:linear-gradient(155deg,#f8faf6 0%,#fcfbf7 65%);}
+.site-header {position:sticky;top:0;background:rgba(249,250,247,.97);z-index:10;backdrop-filter:blur(14px);}
+.hero {padding:80px 0 90px;}
+.hero h1 {font-size:clamp(40px,4.8vw,70px);line-height:1.09;max-width:780px;}
+.hero-grid {grid-template-columns:1.16fr .84fr;gap:70px;}
+.visual {box-shadow:15px 15px 0 #e0ece5;}
+.hero-actions a.primary {background:var(--green);}
+.hero-actions a:hover,.navigation nav .nav-action:hover {transform:translateY(-1px);}
+.impact-strip {background:#f0f6f2;border-block:1px solid #dce8df;padding:27px 0 29px;}
+.impact-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+.impact-metric {background:white;border:1px solid #d9e6dd;border-radius:14px;padding:23px 24px;min-height:170px;}
+.impact-metric span {color:var(--green);font-size:10px;letter-spacing:.16em;font-weight:700;}
+.impact-metric strong {display:block;font:700 clamp(28px,3vw,41px) "Space Grotesk",sans-serif;letter-spacing:-.06em;color:var(--navy);margin:12px 0 8px;}
+.impact-metric p {font-size:12px;line-height:1.6;color:#5b7180;margin:0;}
+.impact-note {font-size:11px;color:#667c76;line-height:1.7;margin-top:14px;}
+.method-card {transition:transform .15s ease,box-shadow .15s ease;}
+.method-card:hover {transform:translateY(-2px);box-shadow:0 14px 32px rgba(17,48,39,.065);}
+@media(max-width:940px){.hero-grid{grid-template-columns:1fr;gap:35px}.impact-grid{grid-template-columns:1fr}.hero{padding:58px 0}}
+@media(max-width:580px){.site-header{position:relative}.hero h1{font-size:clamp(36px,10vw,48px)}.visual{padding:23px}.impact-metric{min-height:0;padding:19px}.impact-note{padding:0 4px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
