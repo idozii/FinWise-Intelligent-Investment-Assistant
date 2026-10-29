@@ -6,7 +6,7 @@
   <meta name="description" content="FinWise: an evidence-centered research project on financial forecasting accuracy, adaptive uncertainty calibration, and responsible forecast abstention.">
   <meta name="robots" content="index,follow">
   <title>FinWise | Research & Evidence</title>
-  <link rel="stylesheet" href="./research.css?v=w6-20261028">
+  <link rel="stylesheet" href="./research.css?v=w8-public-1">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -14,10 +14,11 @@
     <div class="wrap navigation">
       <a class="brand" href="./research.html" aria-label="FinWise research home">FW<span class="brand-square"></span> FinWise <span class="brand-light">Research</span></a>
       <nav aria-label="Main navigation">
-        <a href="#research">Research</a>
+        <a href="#research">Overview</a>
         <a href="#evidence">Evidence</a>
         <a href="#method">Method</a>
-        <a href="./index.html" class="nav-action">Open market dashboard</a>
+        <a href="#limits">Research status</a>
+        <a href="./index.html" class="nav-action">Market Explorer <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
   </header>
@@ -42,6 +43,15 @@
           <div class="visual-footer">Evidence precedes model claims.</div>
         </div>
       </div>
+    </section>
+
+    <section class="impact-strip" aria-label="First-run study headline results">
+      <div class="wrap impact-grid">
+        <article class="impact-metric"><span>01 / ACCURACY</span><strong>0 of 8</strong><p>Ridge MAE wins against persistence in the historical M5-v2 first run</p></article>
+        <article class="impact-metric"><span>02 / UNCERTAINTY</span><strong>8 of 8</strong><p>Descriptive paired bootstrap intervals include zero; no superiority claim</p></article>
+        <article class="impact-metric"><span>03 / CALIBRATION</span><strong>2 of 8</strong><p>Ridge nominal-90% ready-origin coverage groups meeting or exceeding 90%</p></article>
+      </div>
+      <p class="wrap impact-note">Historical retrospective results (64 forecast origins per asset/horizon), not independently validated live investment forecasts. Figures are from the M5-v2 first-run research record; detailed API tables load only when a verified local evidence export is configured.</p>
     </section>
 
     <section class="section-light" id="evidence">
@@ -104,7 +114,7 @@
       </div>
     </section>
 
-    <section class="wrap section">
+    <section class="wrap section" id="limits">
       <div class="section-header"><div><p class="eyebrow">04 / NEXT SCIENTIFIC GATE</p><h2>Evidence still to be earned.</h2></div></div>
       <div class="gate">
         <div class="gate-symbol">LOCKED</div>
@@ -116,6 +126,6 @@
     </section>
   </main>
   <footer class="footer"><div class="wrap"><strong>FinWise</strong><span>Research transparency over speculative performance claims.</span><a href="./index.html">Market Dashboard</a></div></footer>
-  <script src="./research.js?v=w6-20261028" defer></script>
+  <script src="./research.js?v=w8-public-1" defer></script>
 </body>
 </html>
