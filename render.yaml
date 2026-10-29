@@ -1,0 +1,22 @@
+# FinWise public research preview: no market tokens, no vendor CSVs.
+services:
+  - type: web
+    name: finwise-research-preview
+    runtime: python
+    region: singapore
+    plan: free
+    branch: feat/w8-public-ui-render-release
+    buildCommand: pip install --no-cache-dir -r backend/requirements.txt
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /ready
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+      - key: FINWISE_PUBLIC_LANDING
+        value: "true"
+      - key: FINWISE_ENABLE_LIVE_MARKET
+        value: "false"
+      - key: FINWISE_DATA_DIR
+        value: /tmp/finwise-unlicensed-data

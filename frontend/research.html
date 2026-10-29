@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FinWise: an evidence-centered research project on financial forecasting accuracy, adaptive uncertainty calibration, and responsible forecast abstention.">
+  <meta name="robots" content="index,follow">
+  <title>FinWise | Research & Evidence</title>
+  <link rel="stylesheet" href="./research.css?v=w8-public-1">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap navigation">
+      <a class="brand" href="./research.html" aria-label="FinWise research home">FW<span class="brand-square"></span> FinWise <span class="brand-light">Research</span></a>
+      <nav aria-label="Main navigation">
+        <a href="#research">Overview</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#method">Method</a>
+        <a href="#limits">Research status</a>
+        <a href="./index.html" class="nav-action">Market Explorer <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero wrap" id="research">
+      <p class="eyebrow"><span class="dot"></span> Research portfolio / October 2026</p>
+      <div class="hero-grid">
+        <div>
+          <h1>A forecast is useful only when you understand <em>its limits.</em></h1>
+          <p class="lead">FinWise studies how financial prediction systems behave when a simple baseline is hard to beat, interval calibration drifts, and an uncertainty-based policy decides not to report a forecast.</p>
+          <div class="hero-actions">
+            <a href="#evidence" class="primary">Explore historical evidence</a>
+            <a href="https://github.com/idozii/FinWise-Intelligent-Investment-Assistant" class="secondary">Explore source code <span aria-hidden="true">↗</span></a>
+          </div>
+          <p class="boundary">Historical empirical research · not a live validated trading signal · not investment advice</p>
+        </div>
+        <div class="visual" aria-label="Illustration of forecasting evidence categories">
+          <div class="visual-kicker">THE THREE QUESTIONS</div>
+          <div class="visual-row"><span class="visual-count">01</span><div><strong>Accuracy</strong><small>Does Ridge beat the persistence baseline?</small></div><span class="visual-mark">↘</span></div>
+          <div class="visual-row"><span class="visual-count">02</span><div><strong>Calibration</strong><small>Do intervals cover observed outcomes?</small></div><span class="visual-mark">≈</span></div>
+          <div class="visual-row"><span class="visual-count">03</span><div><strong>Availability</strong><small>When should the system abstain?</small></div><span class="visual-mark">◌</span></div>
+          <div class="visual-footer">Evidence precedes model claims.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="impact-strip" aria-label="First-run study headline results">
+      <div class="wrap impact-grid">
+        <article class="impact-metric"><span>01 / ACCURACY</span><strong>0 of 8</strong><p>Ridge MAE wins against persistence in the historical M5-v2 first run</p></article>
+        <article class="impact-metric"><span>02 / UNCERTAINTY</span><strong>8 of 8</strong><p>Descriptive paired bootstrap intervals include zero; no superiority claim</p></article>
+        <article class="impact-metric"><span>03 / CALIBRATION</span><strong>2 of 8</strong><p>Ridge nominal-90% ready-origin coverage groups meeting or exceeding 90%</p></article>
+      </div>
+      <p class="wrap impact-note">Historical retrospective results (64 forecast origins per asset/horizon), not independently validated live investment forecasts. Figures are from the M5-v2 first-run research record; detailed API tables load only when a verified local evidence export is configured.</p>
+    </section>
+
+    <section class="section-light" id="evidence">
+      <div class="wrap">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">01 / EVIDENCE</p>
+            <h2>What happened in the first external-asset study?</h2>
+            <p class="section-sub">This is a historical, frozen Tiingo raw-Close replication. Its results are not the validation of the live market dashboard.</p>
+          </div>
+          <span class="tag">HISTORICAL · NOT LIVE</span>
+        </div>
+        <p id="evidenceStatus" class="load-status" role="status" aria-live="polite">Checking optional audited local M5-v2 evidence…</p>
+        <div id="evidenceData" hidden>
+          <div class="evidence-stats" id="evidenceStats"></div>
+          <div class="scroll-table">
+            <table>
+              <caption>Audited first-run outcomes; 64 origins per asset/horizon</caption>
+              <thead><tr><th>Asset</th><th>Horizon</th><th>Naive MAE</th><th>Ridge MAE</th><th>Ridge − Naive</th><th>Descriptive 95% CI</th><th>Ridge accepted</th></tr></thead>
+              <tbody id="evidenceRows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="warning-note">
+          <span class="warning-icon">!</span>
+          <p><strong>Important limitation.</strong> XLE underwent a 2:1 share split effective 5 December 2025. The frozen M5-v2 target used <code>raw Close</code>, and one XLE H7 origin crossed that event. Original scores are preserved; this is an acknowledged data-estimand issue, not a reason to delete difficult observations.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap section" id="method">
+      <div class="section-header">
+        <div><p class="eyebrow">02 / METHODOLOGY</p><h2>Built around reproducibility, not hype.</h2></div>
+      </div>
+      <div class="method-grid">
+        <article class="method-card"><span>01</span><h3>Time-respecting evaluation</h3><p>Use matured labels at each forecast origin, independent source fingerprints, and explicit historical test boundaries.</p></article>
+        <article class="method-card"><span>02</span><h3>Strong simple baselines</h3><p>Compare Ridge to Naive persistence and report negative results instead of claiming automatic AI superiority.</p></article>
+        <article class="method-card"><span>03</span><h3>Calibrated uncertainty research</h3><p>Measure marginal interval coverage, width, drift and the cost of applying an abstention threshold.</p></article>
+        <article class="method-card"><span>04</span><h3>Data integrity auditing</h3><p>Document splits, event announcement timing and differing raw/adjusted price definitions before interpreting losses.</p></article>
+      </div>
+    </section>
+
+    <section class="section-ink">
+      <div class="wrap split-section">
+        <div>
+          <p class="eyebrow inverse">03 / RELIABILITY</p>
+          <h2>Sometimes the right output is <em>“no forecast”.</em></h2>
+          <p>A width-based policy can reject uncertain predictions. But abstention has a cost: fewer reported forecasts, small selected samples, and no automatic conditional-coverage guarantee.</p>
+          <p id="policyStatus" class="load-status inverse-status" role="status">Checking optional R9 development evidence…</p>
+        </div>
+        <div class="policy-card">
+          <p class="policy-label">Exploratory H7 / Ridge / 10% width</p>
+          <div class="policy-grid">
+            <div><span>MSFT · Fixed rolling</span><strong id="fixedAccepted">—</strong><small>Accepted / all origins</small></div>
+            <div><span>MSFT · ACI-style</span><strong id="adaptiveAccepted">—</strong><small>Accepted / all origins</small></div>
+          </div>
+          <p id="policyCaveat">Data shown only after audited R9 aggregate is present. These are development-only selected subsets, not validated investment forecasts.</p>
+          <a href="./index.html#policyExplorerTitle">Explore policy sensitivity in the dashboard <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap section" id="limits">
+      <div class="section-header"><div><p class="eyebrow">04 / NEXT SCIENTIFIC GATE</p><h2>Evidence still to be earned.</h2></div></div>
+      <div class="gate">
+        <div class="gate-symbol">LOCKED</div>
+        <div><h3>R10 — Independent evaluation not yet authorized</h3>
+          <p>The next study requires a genuinely unused dataset, source rights, a point-in-time corporate-action-safe economic target, a frozen policy and an approved statistical analysis plan. Existing M5 and R8/R9 observations will not be presented as another independent test.</p>
+          <a href="https://github.com/idozii/FinWise-Intelligent-Investment-Assistant/blob/feat/r10-preregistration-readiness/research/R10_INDEPENDENT_EVALUATION_GATE.md">View scientific gate on GitHub <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><div class="wrap"><strong>FinWise</strong><span>Research transparency over speculative performance claims.</span><a href="./index.html">Market Dashboard</a></div></footer>
+  <script src="./research.js?v=w8-public-1" defer></script>
+</body>
+</html>

@@ -5,24 +5,50 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pycoingecko import CoinGeckoAPI
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
+from backend.contracts import capabilities_document, legacy_forecast_metadata
+from backend.research_evidence import load_export
+from backend.model_explanations import load_explanations
+from backend.reliability_policies import load_policy_package
 
 app = FastAPI(title="FinWise API", version="1.0.0")
 
+# Same-origin deployments do not need cross-origin access. Only allow explicit
+# local-development origins (or user-provided FINWISE_CORS_ORIGINS), no wildcard
+# with credentialed requests. Market data API remains read-only.
+_CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "FINWISE_CORS_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500"
+    ).split(",")
+    if origin.strip() and origin.strip() != "*"
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["Accept", "Content-Type"],
 )
+
+
+@app.middleware("http")
+async def minimal_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"]="nosniff"
+    response.headers["Referrer-Policy"]="no-referrer"
+    response.headers["X-Frame-Options"]="DENY"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"]="no-store"
+    return response
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = Path(os.getenv("FINWISE_DATA_DIR", REPO_ROOT / "data")).expanduser().resolve()
@@ -31,6 +57,34 @@ FRONTEND_DIR = REPO_ROOT / "frontend"
 _SYMBOL_CACHE: dict[str, pd.DataFrame] = {}
 _CRYPTO_CACHE: pd.DataFrame | None = None
 COINGECKO_PUBLIC_MAX_DAYS = 365
+
+def _env_true(name: str, default: bool = False) -> bool:
+    return os.getenv(name, "true" if default else "false").strip().lower() in (
+        "1", "true", "yes", "on"
+    )
+
+
+def _require_live_market() -> None:
+    # Public demo disables outbound market data and CPU-heavy fits by default.
+    # Operators must explicitly opt into provider terms, quotas, and limits.
+    if not _env_true("FINWISE_ENABLE_LIVE_MARKET", default=True):
+        raise HTTPException(
+            status_code=503,
+            detail="Live market forecasts are disabled on this public research demo. "
+                   "Explore the audited historical research instead.",
+        )
+
+
+@app.get("/api/public-config")
+def public_config() -> dict[str, object]:
+    return {
+        "marketEnabled": _env_true("FINWISE_ENABLE_LIVE_MARKET", default=True),
+        "publicResearchLanding": _env_true("FINWISE_PUBLIC_LANDING"),
+        "marketForecastsValidated": False,
+        "historicalResearchIsNotLive": True,
+    }
+
+
 
 SUPPORTED_STOCKS = (
     "AAPL",
@@ -271,7 +325,11 @@ def _forecast_holt_winters(close_series: pd.Series, days: int) -> tuple[np.ndarr
 
 
 def _forecast_arima(close_series: pd.Series, days: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    train = close_series.dropna().astype(float).tail(min(600, len(close_series)))
+    # statsmodels needs a continuous integer index to issue forward forecasts;
+    # reset row IDs, not the chronological observed values or forecast dates.
+    train = (close_series.dropna().astype(float)
+             .tail(min(600, len(close_series)))
+             .reset_index(drop=True))
     if train.shape[0] < 40:
         return _forecast_linear_fallback(train, days)
 
@@ -309,7 +367,84 @@ def _run_forecast(close_series: pd.Series, days: int, model_name: str) -> tuple[
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "dataDir": str(DATA_DIR)}
+    """Minimal path-safe liveness response; never return internal data directories."""
+    return {"status":"ok"}
+
+
+@app.get("/ready")
+def ready() -> dict[str, object]:
+    """Offline readiness: required portfolio and dashboard frontend assets."""
+    required=("index.html","styles.css","app.js",
+              "research.html","research.css","research.js")
+    present=all((FRONTEND_DIR / name).is_file() for name in required)
+    return {
+        "status":"ready" if present else "degraded",
+        "frontendAssetsPresent":present,
+        "researchExportsRequiredForLiveness":False,
+        "externalDataProviderProbed":False,
+        "livePredictionValidated":False,
+    }
+
+
+@app.get("/api/research/reliability-policies")
+def historical_reliability_policies() -> dict[str, object]:
+    """Read optional exploratory R9 policy summary, never current live forecasts."""
+    path = Path(os.getenv(
+        "FINWISE_RELIABILITY_POLICIES_PATH",
+        REPO_ROOT / "reports" / "backtest" / "w4_reliability_policies.json"
+    )).expanduser()
+    try:
+        return load_policy_package(path)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404, detail="No audited development risk/availability package configured"
+        )
+    except (ValueError, OSError, UnicodeError) as exc:
+        raise HTTPException(
+            status_code=422, detail="Development reliability policy package failed validation"
+        ) from exc
+
+
+@app.get("/api/research/explanations")
+def historical_ridge_explanations() -> dict[str, object]:
+    """Optional offline M4.1 aggregate. No current model fits or test assets."""
+    p = Path(os.getenv(
+        "FINWISE_EXPLANATIONS_PATH",
+        REPO_ROOT / "reports" / "backtest" / "w3_ridge_explanations.json"
+    )).expanduser()
+    try:
+        return load_explanations(p)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="No audited Ridge explanations configured")
+    except (ValueError, OSError, UnicodeError) as exc:
+        raise HTTPException(status_code=422, detail="Ridge explanation export failed validation") from exc
+
+
+@app.get("/api/research/evidence")
+def historical_research_evidence() -> dict[str, object]:
+    """Read-only historical summaries, not live model calibration."""
+    path = Path(os.getenv(
+        "FINWISE_RESEARCH_SUMMARY_PATH",
+        REPO_ROOT / "reports" / "backtest" / "w2_research_evidence.json"
+    )).expanduser()
+    try:
+        return load_export(path)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="No audited historical evidence package configured; run offline W2 exporter",
+        )
+    except (ValueError, OSError, UnicodeError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Historical research evidence package is unavailable or failed validation",
+        ) from exc
+
+
+@app.get("/api/capabilities")
+def get_capabilities() -> dict[str, object]:
+    """Static, no network calls; distinguish live heuristic from research evidence."""
+    return capabilities_document(list(FORECAST_MODELS))
 
 
 @app.get("/api/forecast-models")
@@ -342,7 +477,7 @@ def list_coins() -> dict[str, list[str]]:
     return {"coins": coins}
 
 
-@app.get("/api/stocks/{symbol}/history")
+@app.get("/api/stocks/{symbol}/history", dependencies=[Depends(_require_live_market)])
 def stock_history(
     symbol: str,
     days: int = Query(default=365, ge=30, le=5000),
@@ -375,7 +510,7 @@ def stock_history(
     }
 
 
-@app.get("/api/stocks/{symbol}/forecast")
+@app.get("/api/stocks/{symbol}/forecast", dependencies=[Depends(_require_live_market)])
 def stock_forecast(
     symbol: str,
     days: int = Query(default=7, ge=1, le=30),
@@ -409,10 +544,11 @@ def stock_forecast(
         "model": model_label,
         "modelId": model.lower(),
         "forecast": forecast_rows,
+        "metadata": legacy_forecast_metadata("stocks"),
     }
 
 
-@app.get("/api/crypto/{coin}/history")
+@app.get("/api/crypto/{coin}/history", dependencies=[Depends(_require_live_market)])
 def crypto_history(
     coin: str,
     days: int = Query(default=365, ge=30, le=5000),
@@ -441,7 +577,7 @@ def crypto_history(
     }
 
 
-@app.get("/api/crypto/{coin}/forecast")
+@app.get("/api/crypto/{coin}/forecast", dependencies=[Depends(_require_live_market)])
 def crypto_forecast(
     coin: str,
     days: int = Query(default=7, ge=1, le=30),
@@ -475,9 +611,15 @@ def crypto_forecast(
         "model": model_label,
         "modelId": model.lower(),
         "forecast": forecast_rows,
+        "metadata": legacy_forecast_metadata("crypto"),
     }
 
 
 # In production, serve the frontend from the same FastAPI origin to avoid API URL confusion.
+if _env_true("FINWISE_PUBLIC_LANDING"):
+    @app.get("/", include_in_schema=False)
+    def public_landing():
+        return RedirectResponse(url="/research.html", status_code=307)
+
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
