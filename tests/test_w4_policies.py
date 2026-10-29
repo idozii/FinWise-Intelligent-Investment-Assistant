@@ -138,4 +138,4 @@ def test_frontend_separates_dev_reliability_from_live_prediction():
     assert "No forecast accepted" not in js or "N/A" in js
     assert "dt.textContent = key" in js
     assert "dd.textContent = value" in js
-    assert 'href="./styles.css?v=w8-public-1"' in html
+    assert 'href="./styles.css?v=w81-card-fit"' in html
