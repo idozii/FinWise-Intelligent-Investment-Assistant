@@ -58,7 +58,7 @@ def test_market_workspace_is_before_optional_research_cards():
     assert "not investment advice" in market.lower()
     assert "Ridge Feature Contributions" in market
     assert "Selective Forecasting" in market
-    assert 'href="./styles.css?v=w8-public-1"' in market
+    assert 'href="./styles.css?v=w81-card-fit"' in market
     js = (ROOT/"frontend"/"app.js").read_text()
     assert '"/api/public-config"' in js
     assert "if (!marketEnabled) return" in js
