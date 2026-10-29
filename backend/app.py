@@ -5,9 +5,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pycoingecko import CoinGeckoAPI
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
@@ -56,6 +57,34 @@ FRONTEND_DIR = REPO_ROOT / "frontend"
 _SYMBOL_CACHE: dict[str, pd.DataFrame] = {}
 _CRYPTO_CACHE: pd.DataFrame | None = None
 COINGECKO_PUBLIC_MAX_DAYS = 365
+
+def _env_true(name: str, default: bool = False) -> bool:
+    return os.getenv(name, "true" if default else "false").strip().lower() in (
+        "1", "true", "yes", "on"
+    )
+
+
+def _require_live_market() -> None:
+    # Public demo disables outbound market data and CPU-heavy fits by default.
+    # Operators must explicitly opt into provider terms, quotas, and limits.
+    if not _env_true("FINWISE_ENABLE_LIVE_MARKET", default=True):
+        raise HTTPException(
+            status_code=503,
+            detail="Live market forecasts are disabled on this public research demo. "
+                   "Explore the audited historical research instead.",
+        )
+
+
+@app.get("/api/public-config")
+def public_config() -> dict[str, object]:
+    return {
+        "marketEnabled": _env_true("FINWISE_ENABLE_LIVE_MARKET", default=True),
+        "publicResearchLanding": _env_true("FINWISE_PUBLIC_LANDING"),
+        "marketForecastsValidated": False,
+        "historicalResearchIsNotLive": True,
+    }
+
+
 
 SUPPORTED_STOCKS = (
     "AAPL",
@@ -448,7 +477,7 @@ def list_coins() -> dict[str, list[str]]:
     return {"coins": coins}
 
 
-@app.get("/api/stocks/{symbol}/history")
+@app.get("/api/stocks/{symbol}/history", dependencies=[Depends(_require_live_market)])
 def stock_history(
     symbol: str,
     days: int = Query(default=365, ge=30, le=5000),
@@ -481,7 +510,7 @@ def stock_history(
     }
 
 
-@app.get("/api/stocks/{symbol}/forecast")
+@app.get("/api/stocks/{symbol}/forecast", dependencies=[Depends(_require_live_market)])
 def stock_forecast(
     symbol: str,
     days: int = Query(default=7, ge=1, le=30),
@@ -519,7 +548,7 @@ def stock_forecast(
     }
 
 
-@app.get("/api/crypto/{coin}/history")
+@app.get("/api/crypto/{coin}/history", dependencies=[Depends(_require_live_market)])
 def crypto_history(
     coin: str,
     days: int = Query(default=365, ge=30, le=5000),
@@ -548,7 +577,7 @@ def crypto_history(
     }
 
 
-@app.get("/api/crypto/{coin}/forecast")
+@app.get("/api/crypto/{coin}/forecast", dependencies=[Depends(_require_live_market)])
 def crypto_forecast(
     coin: str,
     days: int = Query(default=7, ge=1, le=30),
@@ -587,5 +616,10 @@ def crypto_forecast(
 
 
 # In production, serve the frontend from the same FastAPI origin to avoid API URL confusion.
+if _env_true("FINWISE_PUBLIC_LANDING"):
+    @app.get("/", include_in_schema=False)
+    def public_landing():
+        return RedirectResponse(url="/research.html", status_code=307)
+
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
