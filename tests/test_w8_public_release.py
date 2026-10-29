@@ -93,3 +93,15 @@ def test_render_blueprint_is_safe_free_preview_configuration():
     ready = client.get("/ready")
     assert ready.status_code == 200
     assert ready.json()["frontendAssetsPresent"] is True
+
+def test_existing_render_docker_release_never_packages_vendor_data():
+    root = Path(__file__).resolve().parents[1]
+    docker = (root/"Dockerfile").read_text()
+    ignored = (root/".dockerignore").read_text().splitlines()
+    assert "COPY backend /app/backend" in docker
+    assert "COPY frontend /app/frontend" in docker
+    assert "COPY data " not in docker
+    assert "FINWISE_PUBLIC_LANDING=true" in docker
+    assert "FINWISE_ENABLE_LIVE_MARKET=false" in docker
+    assert '"--workers", "1"' in docker
+    assert "data/" in ignored and "reports/" in ignored and ".env" in ignored
