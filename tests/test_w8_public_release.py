@@ -55,7 +55,7 @@ def test_market_workspace_is_before_optional_research_cards():
     assert market.index('id="market-workspace"') < market.index('id="researchEvidenceTitle"')
     assert 'id="marketPreviewNotice"' in market
     assert "Explore markets." in market
-    assert "not a guarantee" in market.lower() or "not advice" in market.lower()
+    assert "not investment advice" in market.lower()
     assert "Ridge Feature Contributions" in market
     assert "Selective Forecasting" in market
     assert 'href="./styles.css?v=w8-public-1"' in market
