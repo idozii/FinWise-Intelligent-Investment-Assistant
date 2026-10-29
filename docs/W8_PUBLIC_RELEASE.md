@@ -11,7 +11,53 @@
 - Research evidence JSON endpoints are optional. With no vetted aggregate files they show an unavailable status rather than fabricated verified metrics.
 - Public research landing includes three clearly qualified historical M5-v2 highlights (0/8 Ridge point-estimate wins; 8/8 descriptive confidence intervals containing zero; 2/8 Ridge cells with >=90% empirical ready-origin coverage). They are **NOT live market performance** or proof of algorithmic novelty.
 
-## Render: optimal first publication (free preview)
+## Preferred path: upgrade the EXISTING FinWise Render Web Service
+
+The connected Render account **already has** a FinWise Docker Web Service:
+
+- URL: https://finwise-intelligent-investment-assistant.onrender.com
+- Dashboard: https://dashboard.render.com/web/srv-d793sgudqaus73dbv0ig
+- Repository: idozii/FinWise-Intelligent-Investment-Assistant
+- Deployed branch: main
+- Runtime: Docker; region Singapore; Free plan; auto-deploy on commits.
+
+**Do not create a duplicate service** unless you specifically want a temporary
+staging domain. The render.yaml Blueprint below is an **optional new staging
+service**, NOT the default route for the existing site.
+
+The W8 Dockerfile now copies ONLY backend and frontend, without the old
+COPY data step, uses one Uvicorn worker, and defaults to safe public mode:
+FINWISE_PUBLIC_LANDING=true and FINWISE_ENABLE_LIVE_MARKET=false.
+The .dockerignore prevents market CSVs/research artifacts/secrets from
+entering the build context.
+
+**Recommended release procedure:**
+
+1. Review W8 Draft PR and wait for green CI; inspect the screenshot locally
+   using the public-preview flags (instructions below).
+2. Once you approve it, merge the W8/W6 feature branch changes into main
+   **in proper dependency order** or create a reviewed release PR from main.
+   GitHub main is protected from unreviewed automatic merges.
+3. The existing Render service has auto-deploy on main. Render will build the
+   new Dockerfile and redeploy this SAME service/URL. Alternatively use
+   Deploy > Manual Deploy after the merge, if the source branch is already main.
+4. In [its Render Environment settings](https://dashboard.render.com/web/srv-d793sgudqaus73dbv0ig),
+   confirm FINWISE_PUBLIC_LANDING=true,
+   FINWISE_ENABLE_LIVE_MARKET=false and do not insert Tiingo secrets.
+   Existing environment variables can override Docker defaults.
+5. Before sharing the URL widely, check /research.html, /index.html, /ready,
+   /api/public-config, and that the market forecast API returns 503 with the
+   preview notice rather than making Yahoo requests.
+6. Do **not** assume CI alone verifies a completed Render deployment.
+   Verify the deployed commit SHA, HTTP responses and browser UI after
+   production redeploy.
+
+If you need an entirely separate staging site without touching production,
+you *can* use the optional Render Blueprint instructions that follow. It
+will create an additional Free service and consume workspace free-instance
+hours; avoid this unless staging isolation is worthwhile.
+
+## Optional: NEW Render staging preview (not preferred)
 
 This branch includes a root render.yaml that defines ONE service:
 
