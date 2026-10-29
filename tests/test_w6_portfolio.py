@@ -20,8 +20,8 @@ def test_research_portfolio_page_served_from_same_origin_without_market_fetch(mo
     assert "R10" in page.text and "not yet authorized" in page.text
     assert "HISTORICAL" in page.text
     assert "not investment advice" in page.text
-    assert 'src="./research.js?v=w6-20261028"' in page.text
-    assert 'href="./research.css?v=w6-20261028"' in page.text
+    assert 'src="./research.js?v=w8-public-1"' in page.text
+    assert 'href="./research.css?v=w8-public-1"' in page.text
 
 
 def test_market_and_research_pages_link_to_each_other():
